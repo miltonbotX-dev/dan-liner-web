@@ -1,5 +1,5 @@
 // sw.js · solo cachea fotos de productos de Google Drive (cache-first, máx. 150). No toca la app, Supabase ni nada más.
-const VERSION = "v28-r1"; // subir en cada publicación
+const VERSION = "v29"; // subir en cada publicación
 const CACHE = "dl-fotos-" + VERSION;
 const MAX = 150;
 const isPhoto = (u) => /^https:\/\/(drive\.google\.com\/(thumbnail|uc)|lh3\.googleusercontent\.com\/)/.test(u);

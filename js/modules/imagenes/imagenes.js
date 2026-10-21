@@ -19,6 +19,6 @@
   window.addEventListener("load", (e) => { const img = e.target; if (img && img.tagName === "IMG" && !img.classList.contains("img-fail")) img.classList.add("loaded"); }, true);
   // Caché de fotos en el teléfono (solo https o localhost; nunca dentro de la vista previa)
   if ("serviceWorker" in navigator && (location.protocol === "https:" || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) && !/preview=1/.test(location.search)) {
-    window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js?v=28r1").catch(() => {}); });
+    window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js?v=29").catch(() => {}); });
   }
 })();

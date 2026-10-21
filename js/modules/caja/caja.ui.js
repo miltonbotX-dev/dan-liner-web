@@ -111,6 +111,7 @@
       ${last ? `<div class="note"><b>Último cierre:</b> ${fecha(last.closed_at)} ${hhmm(last.closed_at)} por ${esc(D().nameOf("staff", last.user_id))}<br>
         Ventas ${lastSales.length} · ${soles(D().sumCents(lastSales, "total_cents"))} · diferencia ${soles(last.difference_cents || 0)}<br>
         <b>Fondo dejado: ${soles(last.float_left_cents ?? last.closing_cents ?? 0)}</b></div>` : `<p class="tiny">No hay cierres anteriores en esta tienda.</p>`}
+      ${window.DL_STORES_TODAY ? window.DL_STORES_TODAY(st) : ""}
       <label>Fondo que recibes en la caja (S/)<input name="opening" inputmode="decimal" value="${last ? ((last.float_left_cents ?? 0) / 100).toFixed(2) : "200.00"}" required></label>
       <button class="btn" type="submit">Abrir caja</button>
       <p class="tiny">El fondo se entrega en la tienda principal. Si cambias de tienda, ciérralo y abre otro.</p></form>`;
@@ -837,6 +838,7 @@
       im.src = url;
     });
   }
+  window.DL_compressProof = compressProof;
   function proofDone(file) { return compressProof(file).then((u) => { cj.proof = u; const c = document.getElementById("cj-cart"); if (c) c.innerHTML = cartHtml(); else D().render(); }); }
   function camFallback() { const i = document.getElementById("cj-proof"); if (i) i.click(); }
   function closeCam() { if (cam.stream) { cam.stream.getTracks().forEach((t) => t.stop()); cam.stream = null; } const ov = document.getElementById("cam-ov"); if (ov) ov.remove(); }
@@ -1058,7 +1060,7 @@
   });
   window.DL_FORMS = Object.assign(window.DL_FORMS || {}, {
     "cj-qt": (form) => qtGo(form),
-    "cj-open": async (form) => { await window.DLCaja.openCash(money(form.elements.opening.value)); D().render(); D().toast("Caja abierta"); },
+    "cj-open": async (form) => { const sel = form.elements.store_today; if (sel && sel.value) { const [sid, rid] = sel.value.split(":"); D().ui.storeId = sid; D().ui.cashRegister = rid || null; } await window.DLCaja.openCash(money(form.elements.opening.value)); D().render(); D().toast("Caja abierta"); },
     "cj-close": (form) => closeCaja(form),
     "cj-auth": async (form) => { const who = await D().Store.verifyCredentials(form.elements.email.value, form.elements.password.value); if (!canCuadre(who)) throw new Error(who.full_name + " no tiene permiso para cuadrar caja"); cj.authBy = { id: who.id, name: who.full_name, at: Date.now() }; D().render(); D().toast("Autorizado por " + who.full_name); },
   });

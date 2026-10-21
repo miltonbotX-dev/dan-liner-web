@@ -22,8 +22,15 @@
     (rows || []).forEach((r) => { const k = String(r.customer_id); const o = out[k] || (out[k] = { purchases: 0, spent_cents: 0, last_purchase_at: null }); o.purchases += 1; o.spent_cents += cents(r.total); if (!o.last_purchase_at || r.sold_at > o.last_purchase_at) o.last_purchase_at = r.sold_at; });
     return out;
   }
-  async function list({ q, offset }) {
+  async function list({ q, offset, tagIds }) {
     offset = Number(offset) || 0; const term = clean(q);
+    // v15: search_customers_v2 (mismas columnas + store_id, seller_id, tags) con filtro por etiquetas
+    try {
+      const rows = (await S.rpc("search_customers_v2", { p_q: term || null, p_tag_ids: tagIds && tagIds.length ? tagIds.map(Number) : null, p_limit: PAGE, p_offset: offset })) || [];
+      const total = rows.length ? Number(rows[0].total_count || 0) : 0;
+      return { total, more: offset + rows.length < total, rows: rows.map((r) => Object.assign(norm({ id: r.customer_id, user_id: r.user_id, name: r.full_name, username: r.username, dni: r.dni, phone: r.phone, email: r.email, is_wholesale: r.is_wholesale, wholesale_mode: r.wholesale_mode,
+        purchases: r.sales_count, spent: r.sales_total, last_purchase_at: r.last_purchase_at }), { orders_count: Number(r.orders_count || 0), tags: Array.isArray(r.tags) ? r.tags : [], store_id: r.store_id || null, seller_id: r.seller_id || null })) };
+    } catch (e) { if (!missing(e)) throw e; }
     const rpc = rpcNames().list;
     if (rpc) {
       try {

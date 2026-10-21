@@ -53,6 +53,7 @@
       if (db[dbKey] == null) return;
       out[k] = map ? (Object.keys(map).find((x) => map[x] === db[dbKey]) || "") : db[dbKey];
     });
+    out._db = db; // v29: claves crudas (v15: razon_social, ruc, terminos, privacidad, envios_info…)
     return out;
   }
   async function saveStorefront(map) {
@@ -128,7 +129,7 @@
       const own = Array.isArray(z.images) ? z.images : []; const gen = Array.isArray(g.images) ? g.images : [];
       return {
         product_id: g.product_id, group_key: g.group_key, product_name: g.product_name, description: g.description, category: g.category, category_code: g.category_code,
-        brand: g.brand, season: g.season, promo_status: g.promo_status, color: g.color, color_hex: g.color_hex, fabric: g.fabric,
+        brand: g.brand, model: g.model, fit: g.fit, fit_label: g.fit_label, composition: g.composition, care_instructions: g.care_instructions, season: g.season, promo_status: g.promo_status, color: g.color, color_hex: g.color_hex, fabric: g.fabric,
         variant_id: z.variant_id, sku: z.sku, size: z.size_code || z.size_label, size_order: n, sale_price: z.price, final_price: z.best_price ?? z.price,
         is_clearance: z.is_clearance, in_stock: z.in_stock, image_url: own[0] || g.cover_image || gen[0] || null, images: own.concat(gen.filter((u) => !own.includes(u))),
       };
@@ -143,7 +144,9 @@
         category_id: r.category_code, brand_id: null, brand: r.brand, season: r.season || "", size_label: r.size, size_order: r.size_order == null ? null : Number(r.size_order), color: r.color, color_hex: r.color_hex, fabric: r.fabric,
         sale_price_cents: cents(r.sale_price), offer_price_cents: r.final_price < r.sale_price ? cents(r.final_price) : 0, is_offer: Number(r.final_price) < Number(r.sale_price),
         offer_label: r.is_clearance ? "Remate" : "Oferta", is_clearance: r.is_clearance, image_url: r.image_url || null, images: Array.isArray(r.images) ? r.images : [], stock_total: r.in_stock ? 1 : 0,
-        promo_status: r.promo_status, is_active: true, deleted_at: null })),
+        promo_status: r.promo_status, is_active: true, deleted_at: null,
+        // ficha técnica (v15 de Elon: se muestran solo si la vista las trae)
+        marca: r.brand || r.marca || null, modelo: r.model || r.modelo || null, entalle: r.fit_label || r.fit || r.entalle || null, composicion: r.composition || r.composicion || null, cuidados: r.care_instructions || r.cuidados || null, fit: r.fit || null })),
     };
   }
 

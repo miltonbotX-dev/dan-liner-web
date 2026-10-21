@@ -1038,3 +1038,103 @@ html[data-theme='light'] .dl-notice { background:#fff; color:#1a1814; box-shadow
 .site-drawer-panel { z-index:1; }
 body.drawer-open .wa-float { display:none !important; }
 .account-menu a { text-decoration:none; }
+
+/* ===== v29 · IU: ajustes de Amilthon ===== */
+/* Menú lateral: opción actual marcada */
+.sd-link.on, .sd-link[aria-current="page"] { background:rgba(214,181,109,.14); color:var(--gold,#9a7a35); font-weight:600; position:relative; }
+.sd-link.on::after, .sd-link[aria-current="page"]::after { content:""; position:absolute; left:-14px; top:10px; bottom:10px; width:3px; border-radius:3px; background:#d6b56d; }
+/* Ficha: foto más contenida en móvil, se asoma la siguiente */
+@media (max-width:760px){
+  .pdp-gallery{grid-auto-columns:78%}
+  .pdp-gallery img{aspect-ratio:4/5; max-height:56vh; border-radius:12px}
+  .pdp-pairs .grid{grid-template-columns:1fr 1fr; gap:12px}
+  .pdp-pairs .product-card img{aspect-ratio:3/4; max-height:none}
+  .pdp-pairs h2{font-size:24px}
+}
+.pdp-gallery:has(img:only-child){grid-auto-columns:100%}
+/* Tallas agotadas: discretas, no bloques oscuros */
+.size-pick .chip.off{background:transparent; color:var(--muted); border:1px dashed var(--line); text-decoration:line-through; opacity:.55}
+.size-pick .chip.on{background:var(--ink); color:var(--canvas); border-color:var(--ink)}
+.btn-bag:disabled{background:transparent; color:var(--muted); border:1px solid var(--line)}
+/* Ficha técnica estilo tienda de lujo */
+.pdp-spec{display:grid; grid-template-columns:auto 1fr; margin:6px 0 0; border-top:1px solid var(--line)}
+.pdp-spec dt, .pdp-spec dd{margin:0; padding:10px 0; border-bottom:1px solid var(--line); font-size:13px}
+.pdp-spec dt{color:var(--muted); letter-spacing:.12em; text-transform:uppercase; font-size:11px; padding-right:18px}
+/* Pie de página completo */
+.site-footer .ft-col{display:grid; gap:2px; align-content:start}
+.site-footer .ft-col a{font-size:13px; line-height:2; color:var(--muted); text-decoration:none}
+.site-footer .ft-col a:hover{color:var(--gold,#9a7a35)}
+.ft-libro{display:inline-flex; align-items:center; gap:8px}
+.ft-libro::before{content:""; width:18px; height:18px; background:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6'%3E%3Cpath d='M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1zM12 6v14'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.6'%3E%3Cpath d='M3 5c3-1 6-1 9 1 3-2 6-2 9-1v14c-3-1-6-1-9 1-3-2-6-2-9-1zM12 6v14'/%3E%3C/svg%3E") center/contain no-repeat}
+.pay-chips{display:flex; flex-wrap:wrap; gap:6px}
+.pay-chips b{font-weight:500; font-size:12px; padding:5px 10px; border:1px solid rgba(214,181,109,.4); border-radius:999px; color:var(--ink)}
+.site-footer .ft-legal{grid-column:1/-1; font-size:11px; line-height:1.6; color:var(--muted); border-top:1px solid var(--line); padding-top:18px; margin:0}
+@media (max-width:600px){ .site-footer .ft-col{padding-top:20px; border-top:1px solid var(--line)} }
+/* Libro de Reclamaciones: <form class="lr-form"> con <fieldset class="lr-block"><legend>…</legend><div class="lr-grid">…</div></fieldset>, <div class="lr-type"> con radios Reclamo/Queja, <p class="lr-note">, <div class="lr-done"> al enviar */
+.lr-form{display:grid; gap:18px; max-width:680px; margin:0 auto; padding:24px 0 56px}
+.lr-head{display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--line); padding-bottom:14px}
+.lr-head h1{margin:0; font:400 28px/1.1 var(--display,Georgia,serif)}
+.lr-block{border:1px solid var(--line); border-radius:14px; padding:16px; margin:0; display:grid; gap:12px; background:var(--surface)}
+.lr-block legend{padding:0 8px; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--gold,#9a7a35)}
+.lr-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.lr-grid .full{grid-column:1/-1}
+@media (max-width:520px){.lr-grid{grid-template-columns:1fr}}
+.lr-form input, .lr-form select, .lr-form textarea{width:100%; box-sizing:border-box; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:var(--canvas); color:var(--ink); font-size:16px}
+.lr-form textarea{min-height:120px; resize:vertical}
+.lr-form :is(input,select,textarea):focus{outline:none; border-color:var(--gold,#9a7a35)}
+.lr-type{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.lr-type label{display:grid; gap:4px; padding:12px; border:1px solid var(--line); border-radius:12px; cursor:pointer; font-size:14px}
+.lr-type label small{color:var(--muted); font-size:12px}
+.lr-type input{position:absolute; opacity:0; pointer-events:none}
+.lr-type label:has(input:checked){border-color:var(--gold,#9a7a35); background:rgba(214,181,109,.1)}
+.lr-note{font-size:12px; color:var(--muted); line-height:1.6; margin:0}
+.lr-done{text-align:center; padding:28px; border:1px solid rgba(214,181,109,.4); border-radius:14px; display:grid; gap:8px; animation:dl-zoom .3s}
+.lr-done .num{font-size:22px; color:var(--gold,#9a7a35)}
+
+/* ===== v29 · Grok Bot provisional (solo lo que «v29 · IU» no cubre: textos borrador, ayuda, ubigeo, comprobante, radios del checkout) ===== */
+.draft-note { display:inline-block; font-size:11px; letter-spacing:.06em; padding:3px 8px; border-radius:6px; background:color-mix(in srgb,var(--gold) 16%,transparent); color:var(--gold); margin:0; }
+.info-page ul { padding-left:18px; line-height:1.7; } .info-nav { margin-top:18px; line-height:2; }
+.info-nav a.on { color:var(--gold); }
+.faq details { border-top:1px solid var(--line); padding:12px 0; } .faq summary { cursor:pointer; font-weight:600; }
+.grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+@media (max-width:600px){ .grid3 { grid-template-columns:1fr; } }
+.co-form select, .libro-form select { width:100%; }
+.store-address { display:flex; gap:6px; align-items:flex-start; color:var(--muted); }
+.proof-preview, .proof-img { width:120px; height:auto; max-height:200px; object-fit:contain; border:1px solid var(--line); border-radius:8px; background:#fff; }
+.proof-img { width:160px; max-height:240px; }
+.pay-choice label { cursor:pointer; } .pay-choice input { position:absolute; opacity:0; pointer-events:none; }
+.pay-choice label.on, .pay-choice label:has(input:checked) { border-color:var(--gold); color:var(--gold); }
+.ship-choice label, .pay-choice label { position:relative; }
+.lr-type label { position:relative; }
+.ship-choice input, .pay-choice input, .lr-type input { width:1px; height:1px; top:0; left:0; margin:0; pointer-events:none; } /* radio oculto con width:100% heredado desbordaba a lo ancho en móvil */
+/* Gestión en el menú lateral (la barra superior se retira; body.nav-in-drawer lo pone tienda.ui.js) */
+body.nav-in-drawer .site-header .nav { display:none !important; }
+.sd-gestion { display:grid; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+.sd-kicker { margin:0 0 4px; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+.sd-link[data-ic="caja"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22black%22%20stroke-width=%221.6%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M4%2010h16v10H4zM7%2010V5h10v5M8%2014h2M12%2014h2M8%2017h8%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="pedidosweb"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22black%22%20stroke-width=%221.6%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M3%207l9-4%209%204v10l-9%204-9-4zM3%207l9%204%209-4M12%2011v10%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="separados"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22black%22%20stroke-width=%221.6%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M12%207v5l3%202M21%2012a9%209%200%201%201-18%200%209%209%200%200%201%2018%200%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="clientes"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22black%22%20stroke-width=%221.6%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M16%2019v-1a4%204%200%200%200-4-4H7a4%204%200%200%200-4%204v1M9.5%2010a3%203%200%201%200%200-6%203%203%200%200%200%200%206M21%2019v-1a4%204%200%200%200-3-3.8M16%204.2a3%203%200%200%201%200%205.6%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="taller"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22black%22%20stroke-width=%221.6%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M6%209a3%203%200%201%200%200-6%203%203%200%200%200%200%206zM6%2021a3%203%200%201%200%200-6%203%203%200%200%200%200%206zM20%204L8.1%2015.9M14.5%2014.5L20%2020M8.1%208.1L12%2012%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="admin"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22black%22%20stroke-width=%221.6%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%3Cpath%20d=%22M4%206h10M18%206h2M4%2012h4M12%2012h8M4%2018h12M16%204v4M10%2010v4M18%2016v4%22/%3E%3C/svg%3E")}
+/* v15 · complementos mínimos (Grok Bot provisional) para marcado que «v29 · IU» no define */
+.promo-strip { display:grid; gap:10px; margin:6px 0 16px; }
+.promo-banner { text-decoration:none; flex-wrap:wrap; }
+.promo-banner .grow { display:grid; gap:2px; min-width:160px; }
+.promo-tag { display:inline-block; padding:3px 8px; background:#0d0c0a; color:#d6b56d; border:1px solid rgba(214,181,109,.45); font-size:10px; letter-spacing:.16em; text-transform:uppercase; }
+.combo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+.combo-list { margin:0; padding-left:18px; font-size:13px; line-height:1.6; }
+.card-media { position:relative; }
+button.tag-chip { cursor:pointer; font:inherit; font-size:11px; font-weight:600; }
+button.tag-chip:disabled { cursor:not-allowed; opacity:.75; }
+.tag-chip small { opacity:.7; font-weight:500; }
+.cust-tags .tags, .tag-row .tag-chip { display:flex; flex-wrap:wrap; gap:6px; }
+.note-list { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.note-item { padding:10px 12px; border:1px solid var(--line); border-radius:10px; }
+.note-item p { margin:0 0 4px; }
+.note-item.is-msg { border-color:rgba(214,181,109,.45); }
+.note-item.unread { background:rgba(214,181,109,.08); }
+.cash-card .diff-amt.pos { color:#b8860b; }
+.cash-card .diff-amt:not(.pos):not(.neg) { color:#2e8b57; }
+.cash-card p { margin:0; }
+.adv-receipt { max-width:520px; border:1px dashed var(--gold); }

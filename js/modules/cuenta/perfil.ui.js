@@ -30,7 +30,7 @@
     // conserva lo que el usuario ya escribió si la pantalla se vuelve a pintar
     const live = document.querySelector(".me-form");
     if (live) me.draft = { nombres: live.elements.nombres.value, apellidos: live.elements.apellidos.value, phone: live.elements.phone.value, dni: live.elements.dni.value };
-    const [n0, a0] = split(p.full_name);
+    const [n0, a0] = p.first_name || p.last_name ? [p.first_name || "", p.last_name || ""] : split(p.full_name);
     const d = me.draft || { nombres: n0, apellidos: a0, phone: p.phone || "", dni: p.dni || "" };
     const n = d.nombres, a = d.apellidos;
     const e = me.errs;
@@ -55,7 +55,7 @@
     if (Object.keys(errs).length) { D().render(); return; }
     me.saving = true; D().render();
     try {
-      const r = await D().Store.v2api.saveMyProfile({ full_name: (nombres + " " + apellidos).trim(), phone, dni, customer_id: me.data && me.data.customer && me.data.customer.id });
+      const r = await D().Store.v2api.saveMyProfile({ first_name: nombres, last_name: apellidos, full_name: (nombres + " " + apellidos).trim(), phone, dni, customer_id: me.data && me.data.customer && me.data.customer.id });
       me.data.profile = Object.assign({}, me.data.profile, r.profile); me.edit = false; me.saving = false; me.draft = null;
       if (D().state.user) D().state.user.full_name = r.profile.full_name;
       D().render(); D().toast(r.customerNote ? "Datos guardados. " + r.customerNote : "Datos guardados", "ok");

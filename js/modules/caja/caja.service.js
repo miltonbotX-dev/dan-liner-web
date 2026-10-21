@@ -26,7 +26,10 @@
     createSale(p) { return S.rpc("create_sale", { p_sale: p }); },
     paySaleBalance(saleId, payments, docTypeArg) { return S.rpc("pay_sale_balance", { p_sale_id: num(saleId), p_payments: dbPayments(payments), p_document_type: docTypeArg || null }); },
     cancelSale(saleId, reason, refundMethod) { return S.rpc("cancel_sale", { p_sale_id: num(saleId), p_reason: reason, p_refund_method: refundMethod ? (PAY_TO_DB[refundMethod] || refundMethod) : null }); },
-    async openCash(storeId, openingCents) {
+    async openCash(storeId, openingCents, registerId) {
+      // v15: abre en la tienda del día (fija, rotación o general); sin fondo usa el que dejó la última caja
+      try { const r = await S.rpc("open_cash_session_at_store", { p_store_id: num(storeId), p_opening: openingCents == null ? null : soles(openingCents), p_register_id: registerId ? num(registerId) : null }); return r && r.session_id != null ? r.session_id : r; }
+      catch (e) { if (!(e && (e.status === 404 || /could not find the function|schema cache/i.test(e.message || "")))) throw e; }
       const reg = (R.mapped.cash_registers || []).find((r) => r.store_id === String(storeId) && r.is_active !== false);
       if (!reg) throw new Error("Esta tienda no tiene una caja registrada. Pídela al administrador.");
       return S.rpc("open_cash_session", { p_register_id: num(reg.id), p_opening: soles(openingCents) });

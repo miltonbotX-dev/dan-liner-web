@@ -325,7 +325,7 @@
     });
   }
 
-  const STORE_ROUTES = ["coleccion", "pieza", "promociones", "mis-pedidos", "tiendas", "contacto"];
+  const STORE_ROUTES = ["coleccion", "pieza", "promociones", "mis-pedidos", "tiendas", "contacto", "info", "libro-de-reclamaciones", "ayuda", "legal"];
   function render() {
     const here = page();
     if (here.name === "admin" && here.sub && here.sub !== ui.admin) { ui.drawer = false; ui.admin = here.sub; ui.staffSel = null; ui.showForm = null; ui.edit = null; }
@@ -513,7 +513,8 @@
     try { localStorage.removeItem("dl-cart"); } catch { }
     ui.cart = []; await Store.signOut(); await reload(); location.hash = "coleccion"; render(); toast("Tu cuenta fue eliminada");
   }
-  const ORDER_ST = { pendiente: "Pendiente", confirmado: "Confirmado", listo: "Listo para recoger", entregado: "Entregado", cancelado: "Cancelado" };
+  const ORDER_ST = { pendiente: "Pendiente", confirmado: "Confirmado", listo: "Listo para recoger", entregado: "Entregado", cancelado: "Cancelado",
+    RECIBIDO: "Recibido", PAGO_EN_REVISION: "Pago por confirmar", CONFIRMADO: "Confirmado", EN_PREPARACION: "Preparando", EMPAQUETADO: "Empaquetado", ENVIADO: "En camino", LISTO_PARA_RECOGER: "Listo para recoger", ENTREGADO: "Entregado", CANCELADO: "Cancelado", RECHAZADO: "Rechazado" };
   const ORDER_NEXT = { pendiente: "confirmado", confirmado: "listo", listo: "entregado" };
   function orderCard(o, staff) {
     const inv = (state.data.store_inventory || []);
@@ -536,6 +537,7 @@
     return `<div class="stack orders-list">${mine.map((o) => orderCard(o, false)).join("")}</div>`;
   }
   function ordersPanel(storeId) {
+    if (window.DL_ORDERS_PANEL && Store.mode === "remote") return window.DL_ORDERS_PANEL(storeId);
     const f = ui.orderFilter || "abiertos";
     let list = (state.orders || []).filter((o) => !storeId || o.store_id === String(storeId));
     if (f === "abiertos") list = list.filter((o) => ORDER_NEXT[o.status]);
@@ -578,6 +580,7 @@
       const ini = String(state.user.full_name || state.user.email || "?").trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join("");
       const perfil = window.DL_PERFIL ? window.DL_PERFIL.view() : "";
       if (sub === "datos") return `<section class="stack account" style="padding:24px 0 48px; max-width:640px"><a class="link-btn" href="#cuenta">← Mi cuenta</a>${perfil}</section>`;
+      if (sub && window.DL_CUENTA_SUB && window.DL_CUENTA_SUB[sub]) return `<section class="stack account" style="padding:24px 0 48px; max-width:640px"><a class="link-btn" href="#cuenta">← Mi cuenta</a>${window.DL_CUENTA_SUB[sub]()}</section>`;
       return `<section class="stack account" style="padding:24px 0 48px; max-width:640px">
         <p class="kicker">Mi cuenta</p>
         <div class="account-card"><span class="avatar" aria-hidden="true">${esc(ini || "?")}</span>
@@ -588,7 +591,8 @@
           <a href="#cuenta/datos">Mis datos</a>
           ${isClient() ? `<a href="#mis-pedidos">Mis pedidos</a>
           <button type="button" data-act="acc-soon" data-id="Mis direcciones"><span>Mis direcciones</span><span class="tiny muted">Próximamente</span></button>
-          <button type="button" data-act="acc-soon" data-id="Mis promociones"><span>Mis promociones</span><span class="tiny muted">Próximamente</span></button>` : ""}
+          ${window.DL_CUENTA_SUB ? `<a href="#cuenta/separados">Mis separados</a><a href="#cuenta/mensajes">Mensajes${window.DL_UNREAD ? window.DL_UNREAD() : ""}</a>` : ""}
+          <a href="#promociones">Promociones</a>` : ""}
         </nav>
         ${isClient() ? `<div class="account-menu" style="margin-top:28px"><button type="button" class="account-danger" data-act="delete-me"><span>Eliminar mi cuenta</span>${icon("trash", 16)}</button></div>
         <p class="tiny muted">Se borran tus datos de acceso. Tus comprobantes se conservan por ley.</p>` : ""}
@@ -713,11 +717,16 @@
 
   window.DL_ADMIN_TABS = (window.DL_ADMIN_TABS || []).concat([{ id: "pedidos", label: "Pedidos web", need: ["SUPERVISOR", "VENDEDOR", "CAJERO"], render: () => ordersPanel(null) }]);
   function renderAdmin() {
-    const block = denied(["SUPERVISOR", "ALMACENERO"]);
+    // v29: vendedor/cajero entran solo a sus pestañas (Pedidos web, Separados, Clientes) desde Gestión en el menú lateral
+    const counter = !allow(["SUPERVISOR", "ALMACENERO"]) && allow(["VENDEDOR", "CAJERO"]);
+    const block = counter ? "" : denied(["SUPERVISOR", "ALMACENERO"]);
     if (block) return block;
     let tabs = [["inicio", "Inicio / Colección"], ["resumen", "Resumen"], ["ventas", "Ventas"], ["products", "Piezas"], ["categories", "Categorías"], ["sizes", "Tallas"], ["brands", "Marcas"], ["stores", "Tiendas"], ["warehouses", "Almacenes"], ["cash_registers", "Cajas"], ["document_series", "Series"], ["panel", "Panel de tienda"], ["reporte", "Reporte general"], ["stock", "Stock"], ["customers", "Clientes"], ["promos", "Promociones"], ["expenses", "Gastos"], ["partners", "Mayoristas"], ["staff", "Equipo"], ["fabrics", "Telas"], ["colors", "Colores"]];
     (window.DL_ADMIN_TABS || []).forEach((t) => { if (!t.need || allow(t.need)) tabs.push([t.id, t.label]); });
-    if (!isAdmin() && !allow(["SUPERVISOR"]) && allow(["ALMACENERO"])) {
+    if (counter) {
+      tabs = tabs.filter(([id]) => id === "customers" || (window.DL_ADMIN_TABS || []).some((t) => t.id === id && t.need && allow(t.need) && !t.need.every((r) => r === "SUPERVISOR" || r === "ADMIN" || r === "ALMACENERO")));
+      if (!tabs.some(([id]) => id === ui.admin)) ui.admin = tabs[0] ? tabs[0][0] : "pedidos";
+    } else if (!isAdmin() && !allow(["SUPERVISOR"]) && allow(["ALMACENERO"])) {
       tabs = tabs.filter(([id]) => id === "products" || id === "stock" || (window.DL_ADMIN_TABS || []).some((t) => t.id === id));
       if (!tabs.some(([id]) => id === ui.admin)) ui.admin = "products";
     }
@@ -1033,6 +1042,7 @@
         <label>Color<select name="color_id" required ${P.key ? "disabled" : ""}>${opts((state.data.colors || []).filter((c) => c.is_active !== false || String(c.id) === String(P.color_id)), P.color_id, "Elige color")}</select>${newBox("colors")}</label></div>
       ${P.key ? `<p class="tiny">Para otro color o tela crea una pieza nueva con el mismo nombre.</p>` : ""}
       <label>Descripción<textarea name="description">${esc(P.description)}</textarea></label>
+      ${window.DL_SPEC_FIELDS ? window.DL_SPEC_FIELDS(P) : ""}
       <div class="two"><label class="checks"><input type="checkbox" name="show_in_catalog" ${P.show_in_catalog ? "checked" : ""}> Visible en la Colección</label>
         <label>Ocultar con stock menor a<input name="hide_below_stock" type="number" min="0" placeholder="Vacío = no ocultar" value="${esc(P.hide_below_stock)}"></label></div>
       <fieldset class="photo-box"><legend>Tallas disponibles</legend>
@@ -1342,7 +1352,10 @@
   }
   function renderStaff() {
     if (!isAdmin() && role() !== "SUPERVISOR" && !managedStores().length) return "";
-    const people = (state.data.staff || []).slice().sort((a, b) => (a.is_active === false) - (b.is_active === false) || String(a.full_name).localeCompare(String(b.full_name), "es"));
+    // Equipo = list_staff (v13, solo personal). Mientras carga: filtro local sin cuentas solo-CLIENTE.
+    const ls = window.DL_STAFF_LIST ? window.DL_STAFF_LIST() : null;
+    const clientOnly = (p) => { const r = (p.roles || []).filter(Boolean); return r.length > 0 && r.every((x) => x === "CLIENTE"); };
+    const people = (state.data.staff || []).filter((p) => (ls ? Boolean(ls[p.id]) : !clientOnly(p))).sort((a, b) => (a.is_active === false) - (b.is_active === false) || String(a.full_name).localeCompare(String(b.full_name), "es"));
     const sel = ui.staffSel && byId("staff", ui.staffSel);
     if (sel) return renderStaffDetail(sel);
     const stores = (state.data.stores || []).filter((s) => s.is_active !== false);
@@ -1357,10 +1370,10 @@
         <label>Tienda<select name="store_id" ${isAdmin() ? "" : "required"}>${isAdmin() ? `<option value="">—</option>` : ""}${storeOpts.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("")}</select></label></div>
       <div class="row"><button class="btn" type="submit">Crear usuario</button><button class="btn ghost" type="button" data-act="clear-form">Cancelar</button></div></form>`
       : canCreate ? `<button class="btn" type="button" data-act="new" data-table="staff" style="margin-bottom:12px">+ Nuevo usuario</button>` : "";
-    return `${form}<div class="stack">${people.map((p) => { const ss = sellerSales(p); return `<button type="button" class="panel person ${p.is_active === false ? "off" : ""}" data-act="staff-open" data-id="${esc(p.id)}">
+    return `${form}<div class="stack">${people.map((p) => { const ss = sellerSales(p); const lsr = ls && ls[p.id]; return `<button type="button" class="panel person ${p.is_active === false ? "off" : ""}" data-act="staff-open" data-id="${esc(p.id)}">
         <span class="avatar">${esc(String(p.full_name || "?").trim().charAt(0).toUpperCase())}</span>
         <span style="flex:1;min-width:0;text-align:left"><b>${esc(p.full_name)}</b><br><span class="tiny">${esc((rolesOf(p).length ? rolesOf(p) : [p.role]).map((r) => ROLE_LABEL[r] || r).join(" + "))} · ${esc(p.store_id ? nameOf("stores", p.store_id) : "Sin tienda")}${p.is_active === false ? " · Desactivado" : ""}</span></span>
-        <span class="tiny" style="text-align:right">${ss.length} ventas<br>${soles(sumCents(ss, "total_cents"))}</span></button>`; }).join("") || `<p class="muted">Nadie en el equipo.</p>`}</div>
+        <span class="tiny" style="text-align:right">${lsr ? lsr.sales_count : ss.length} ventas<br>${soles(lsr ? lsr.sales_cents : sumCents(ss, "total_cents"))}</span></button>`; }).join("") || `<p class="muted">Nadie en el equipo.</p>`}</div>
       <p class="tiny" style="margin-top:8px">Administrador: todo. Supervisor: opera la casa. Vendedor: caja. Almacenero: taller, piezas y stock. Pendiente: sin acceso.</p>`;
   }
   function renderStaffDetail(p) {
@@ -2347,6 +2360,7 @@
     state, ui, Store, PAY, ROLES, PERMS, ROLE_LABEL, render, reload, toast, moneyHtml, esc, soles, nid, localDay, byId, nameOf, allow, isAdmin, myRoles, rolesOf,
     icon, ordersPanel, priceOf, stockIn, stockOf, applyDelta, nextNumber, safeSrc, driveDirect, table, refField, bars, group, sumCents, completedSales, denied, visibleProducts,
     openSession: () => openSession(), detailVariant: () => detailVariant(),
+    cartLines, cartSum, saveCart, normPhone, renderPedidoBase: () => renderPedido(), goStep: (n) => goStep(n), orderSt: ORDER_ST,
     productKey, productGroups, bySize, groupImages, cardHtml, pickVariant, myOrdersHtml, isClient, page, closeSheet: () => { const sh = document.getElementById("sheet"); if (sh && sh.open) sh.close(); },
     sell: (order) => window.DLCaja.sell(order),
     voidSale: (id) => window.DLCaja.voidSale(id),
@@ -2473,7 +2487,7 @@
     async openCash(openingCents) {
       needCaja();
       if (openSession()) throw new Error("Ya tienes una caja abierta en esta tienda");
-      if (Store.mode === "remote") { const sid = await Store.v2api.openCash(ui.storeId, openingCents); await reload(); return byId("cash_sessions", String(sid)); }
+      if (Store.mode === "remote") { const sid = await Store.v2api.openCash(ui.storeId, openingCents, ui.cashRegister); ui.cashRegister = null; await reload(); return byId("cash_sessions", String(sid)); }
       const row = { id: nid("cash"), store_id: ui.storeId, user_id: state.user.id, opening_cents: Math.round(openingCents) || 0, closing_cents: null, status: "OPEN", opened_at: new Date().toISOString(), closed_at: null };
       await Store.insert("cash_sessions", row);
       await reload();

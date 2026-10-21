@@ -23,11 +23,40 @@
     }
     document.querySelectorAll('.menu-btn[data-act="site-menu"]').forEach((b) => b.setAttribute("aria-expanded", String(!!open)));
   }
+  // Opción actual: gana el enlace más específico que coincide con la ruta (#admin/pedidos antes que #admin).
   function markCurrent() {
     const d = drawer(); if (!d) return;
-    const name = (location.hash || "#coleccion").slice(1).split("/")[0] || "coleccion";
-    const cur = name === "entrar" ? "cuenta" : name === "pieza" ? "coleccion" : name;
-    d.querySelectorAll("a.sd-link").forEach((a) => { const on = a.getAttribute("href") === "#" + cur; a.classList.toggle("on", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    mountGestion();
+    const raw = (location.hash || "#coleccion").slice(1) || "coleccion"; const name = raw.split("/")[0];
+    const alias = { entrar: "cuenta", cuenta: "cuenta", pieza: "coleccion" }[name];
+    const full = alias ? alias : raw;
+    let best = null;
+    d.querySelectorAll("a.sd-link").forEach((a) => { const h = (a.getAttribute("href") || "").slice(1); if (h && (full === h || full.startsWith(h + "/")) && (!best || h.length > best.h.length)) best = { a, h }; });
+    d.querySelectorAll("a.sd-link").forEach((a) => { const on = !!best && a === best.a; a.classList.toggle("on", on); a.classList.toggle("is-active", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  }
+  // v29: la barra superior (Colección · Caja · Taller · Administración) se retira; Gestión pasa al menú lateral, solo según rol.
+  function gestionLinks() {
+    const X = D(); if (!X || !X.state || !X.state.user) return [];
+    const a = (r) => X.allow(r);
+    return [
+      a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["caja", "#caja", "Caja"],
+      a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["pedidosweb", "#admin/pedidos", "Pedidos web"],
+      a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["separados", "#admin/adelantos", "Separados"],
+      a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["clientes", "#admin/customers", "Clientes"],
+      a(["SUPERVISOR", "ALMACENERO"]) && ["taller", "#taller", "Taller"],
+      a(["SUPERVISOR", "ALMACENERO"]) && ["admin", "#admin", "Administración"],
+    ].filter(Boolean);
+  }
+  function mountGestion() {
+    const d = drawer(); const panel = d && d.querySelector(".site-drawer-panel"); if (!panel) return;
+    document.body.classList.add("nav-in-drawer");
+    const links = gestionLinks(); const sig = links.map((l) => l[1]).join("|");
+    let box = panel.querySelector(".sd-gestion");
+    if (!links.length) { if (box) box.remove(); return; }
+    if (box && box.dataset.sig === sig) return;
+    if (!box) { box = document.createElement("div"); box.className = "sd-group sd-gestion"; const ref = panel.querySelector('[data-act="theme"]'); panel.insertBefore(box, ref || panel.querySelector(".sd-foot")); }
+    box.dataset.sig = sig;
+    box.innerHTML = `<p class="sd-kicker">Gestión</p>` + links.map(([ic, h, l]) => `<a class="sd-link" data-ic="${ic}" href="${h}">${esc(l)}</a>`).join("");
   }
   document.addEventListener("click", (e) => {
     const a = e.target.closest && e.target.closest("#site-drawer a.sd-link"); if (a) setDrawer(false);
@@ -35,6 +64,8 @@
   });
   document.addEventListener("keydown", (e) => { const d = drawer(); if (e.key === "Escape" && d && !d.hidden) { e.preventDefault(); setDrawer(false); } }, true);
   window.addEventListener("hashchange", () => { const d = drawer(); if (d && !d.hidden) setDrawer(false); markCurrent(); });
+  window.addEventListener("popstate", markCurrent);
+  document.addEventListener("DOMContentLoaded", markCurrent);
 
   // ---------- Ficha completa ----------
   function groupOf(key) { const all = D().visibleProducts(); const vars = D().bySize(all.filter((p) => D().productKey(p) === key)); return vars; }
@@ -42,7 +73,7 @@
     const key = decodeURIComponent(D().page().sub || "");
     const vars = groupOf(key);
     if (!vars.length) return `<section class="stack" style="padding:32px 0 60px"><h1>Pieza no disponible</h1><p class="muted">Puede que ya no esté en la colección.</p><a class="btn" href="#coleccion">Ver la colección</a></section>`;
-    if (pdp.key !== key) { pdp.key = key; pdp.variant = D().pickVariant(key, vars).id; }
+    if (pdp.key !== key) { pdp.key = key; pdp.variant = D().pickVariant(key, vars).id;  }
     const v = vars.find((x) => x.id === pdp.variant) || vars[0];
     const imgs = D().groupImages([v].concat(vars.filter((x) => x !== v))).filter(Boolean);
     const pr = D().priceOf(v); const stock = D().stockOf(v); const soldOut = stock <= 0;
@@ -53,7 +84,7 @@
     const stockTxt = soldOut ? "Agotado en esta talla" : stock <= 3 ? `Disponible · quedan ${stock}` : "Disponible";
     return `<nav class="tiny" style="padding-top:16px"><a class="link-btn" href="#coleccion">← Colección</a>${cat && cat !== "—" ? ` · ${esc(cat)}` : ""}</nav>
       <article class="pdp">
-        <div class="pdp-gallery">${(imgs.length ? imgs : [""]).map((u, i) => `<img decoding="async" ${i ? 'loading="lazy"' : 'fetchpriority="high"'} width="800" height="1066" alt="${esc(v.name)} ${i + 1}" src="${esc(D().safeSrc(u))}">`).join("")}</div>
+        <div class="pdp-gallery">${galleryHtml(v, imgs)}</div>
         <div class="pdp-info">
           ${cat && cat !== "—" ? `<p class="kicker">${esc(cat)}</p>` : ""}
           <h1>${esc(v.name)}</h1>
@@ -62,13 +93,23 @@
           ${vars.length ? `<div class="stack opt-group"><span class="tiny">Talla${v.size_label ? ": <b>" + esc(v.size_label) + "</b>" : ""}</span><div class="size-pick" role="group" aria-label="Talla">${sizes}</div><span class="tiny ${soldOut ? "bad" : ""}">${esc(stockTxt)}</span></div>` : ""}
           <button class="btn btn-bag full" type="button" data-act="cart-add" data-id="${esc(v.id)}" ${soldOut ? "disabled" : ""}>${D().icon("bag", 16)} ${soldOut ? "Agotado" : "Agregar talla " + esc(v.size_label || "")}</button>
           <div class="pdp-acc">
-            <details open><summary>Detalles</summary><div class="stack" style="padding-top:10px">${v.description ? `<p>${esc(v.description)}</p>` : ""}<p class="tiny">Terno de fábrica${v.fabric ? " · Tela " + esc(v.fabric) : ""}${v.color ? " · Color " + esc(v.color) : ""}</p><p class="tiny">Código ${esc(v.sku || "—")}</p></div></details>
-            <details><summary>Medidas</summary><div class="stack" style="padding-top:10px"><p class="tiny">Tallas de fábrica${vars.length ? ": " + esc(vars.map((x) => x.size_label || "Única").join(", ")) : ""}.${avail.length ? " Con stock ahora: " + esc(avail.join(", ")) + "." : ""}</p><p class="tiny">Si dudas de tu talla, pruébatelo en tienda o escríbenos por WhatsApp con tu talla habitual.</p></div></details>
-            <details><summary>Envío</summary><div class="stack" style="padding-top:10px"><p class="tiny">Recojo en tienda${stores.length ? ": " + esc(stores.map((s) => s.name).join(" · ")) : ""}.</p><p class="tiny">Envío a domicilio: elige «Envío a domicilio» al hacer tu pedido y coordinamos contigo la entrega.</p></div></details>
+            <details open><summary>Detalles</summary><div class="stack" style="padding-top:10px">${v.description ? `<p>${esc(v.description)}</p>` : ""}${specHtml(v)}<p class="tiny">Prenda de fábrica, lista para llevar.</p></div></details>
+            <details><summary>Medidas</summary><div class="stack" style="padding-top:10px"><p class="tiny">Tallas de fábrica${vars.length ? ": " + esc(vars.map((x) => x.size_label || "Única").join(", ")) : ""}.${avail.length ? " Con stock ahora: " + esc(avail.join(", ")) + "." : ""}</p><p class="tiny">Si dudas de tu talla, pruébatelo en tienda o escríbenos por WhatsApp con tu talla habitual. <a class="support-link" href="#info/guia-de-tallas">Guía de tallas</a></p></div></details>
+            <details><summary>Envío</summary><div class="stack" style="padding-top:10px"><p class="tiny">Recojo en tienda${stores.length ? ": " + esc(stores.map((s) => s.name).join(" · ")) : ""}.</p><p class="tiny">Envío a domicilio a todo el Perú: elige «Envío a domicilio» al hacer tu pedido y coordinamos contigo el costo y la fecha. <a class="support-link" href="#info/envios">Tiempos y costos de envío</a></p></div></details>
           </div>
         </div>
       </article>
       ${pairsHtml(key, v)}`;
+  }
+  // v29 · IU: galería horizontal (se asoma la siguiente foto); estilos en «v29 · IU».
+  function galleryHtml(v, imgs) {
+    const list = imgs.length ? imgs : [""];
+    return list.map((u, k) => `<img decoding="async" ${k ? 'loading="lazy"' : 'fetchpriority="high"'} width="800" height="1000" alt="${esc(v.name)}${v.color ? " " + esc(v.color) : ""}, foto ${k + 1} de ${list.length}" src="${esc(D().safeSrc(u))}">`).join("");
+  }
+  // Ficha técnica (BD v15: brand, model, fit_label, composition, care_instructions) → <dl class="pdp-spec">
+  function specHtml(v) {
+    const rows = [["Marca", v.marca || "DAN-LINER"], ["Modelo", v.modelo], ["Entalle", v.entalle], ["Composición", v.composicion || v.fabric], ["Cuidados", v.cuidados], ["Código", v.sku], ["Hecho en", "Lima, Perú"]].filter(([, x]) => x);
+    return `<dl class="pdp-spec">${rows.map(([k, x]) => `<dt>${esc(k)}</dt><dd>${esc(x)}</dd>`).join("")}</dl>`;
   }
   function pairsHtml(key, v) {
     const groups = D().productGroups(D().visibleProducts()).filter((g) => g.key !== key && D().stockOf(g.first) > 0);
@@ -120,7 +161,7 @@
   window.DL_ACTIONS = Object.assign(window.DL_ACTIONS || {}, {
     "site-menu": () => { const d = drawer(); setDrawer(d ? d.hidden : false); },
     "pdp-open": (el) => { D().closeSheet(); location.hash = "pieza/" + encodeURIComponent(el.dataset.id); },
-    "pdp-size": (el) => { if (el.disabled) return; pdp.variant = el.dataset.id; (D().ui.cardSel = D().ui.cardSel || {})[pdp.key] = el.dataset.id; D().render(); },
+    "pdp-size": (el) => { if (el.disabled) return; pdp.variant = el.dataset.id;  (D().ui.cardSel = D().ui.cardSel || {})[pdp.key] = el.dataset.id; D().render(); },
     "acc-edit": () => { if (window.DL_ACTIONS["me-edit"]) window.DL_ACTIONS["me-edit"](); location.hash = "cuenta/datos"; },
     "acc-soon": (el) => { D().toast((el.dataset.id || "Esta sección") + ": próximamente", "ok"); },
     "login-for": (el) => { D().ui.afterLogin = el.dataset.id; try { localStorage.setItem("dl-after", el.dataset.id); } catch { } location.hash = "entrar"; },

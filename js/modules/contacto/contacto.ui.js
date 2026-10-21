@@ -15,7 +15,9 @@
     const v = D().ui.detail && document.getElementById("sheet") && document.getElementById("sheet").open ? D().detailVariant() : (window.DL_PDP ? window.DL_PDP() : null);
     return v ? `Hola DAN-LINER, me interesa: ${v.name}${v.size_label ? " talla " + v.size_label : ""}${v.color ? " · " + v.color : ""}. ¿Está disponible?` : "Hola DAN-LINER, quisiera información sobre sus ternos.";
   }
+  window.DL_SOCIAL_SVG = SVG;
   function mountFooter() {
+    if (window.DL_FOOTER) return; // v29: el pie lo arma legal.ui.js
     const c = sf(); const brand = document.querySelector(".site-footer .ft-brand"); if (!brand) return;
     const links = [
       c.contact_whatsapp && ["wa", "WhatsApp", "https://wa.me/" + waNum(c.contact_whatsapp)],

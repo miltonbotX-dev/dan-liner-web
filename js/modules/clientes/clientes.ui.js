@@ -13,7 +13,7 @@
   function rowHtml(r, i) {
     return `<button type="button" class="cust-row" data-act="cl-open" data-i="${i}">
       <span class="avatar" aria-hidden="true">${esc(initials(r.name))}</span>
-      <span class="grow" style="min-width:0;text-align:left"><b>${esc(r.name)}</b> ${r.is_wholesale ? `<span class="tag-mayorista">Mayorista</span>` : ""}
+      <span class="grow" style="min-width:0;text-align:left"><b>${esc(r.name)}</b> ${window.DL_TAGS_HTML && r.tags ? window.DL_TAGS_HTML(r.tags) : r.is_wholesale ? `<span class="tag-mayorista">Mayorista</span>` : ""}
         <span class="meta" style="display:block">${esc([r.username ? "@" + r.username : "", r.document_number ? (r.document_type || "Doc.") + " " + r.document_number : "", r.phone].filter(Boolean).join(" · ") || "Sin datos de contacto")}</span></span>
       <span class="num">${activity(r.last_purchase_at)}<br><b>${soles(r.spent_cents)}</b><br><span class="meta">${r.purchases} compra${r.purchases === 1 ? "" : "s"}</span></span></button>`;
   }
@@ -28,7 +28,7 @@
     if (reset) { cl.offset = 0; }
     paint();
     try {
-      const r = await api().list({ q: cl.q, offset: reset ? 0 : cl.offset });
+      const r = await api().list({ q: cl.q, offset: reset ? 0 : cl.offset, tagIds: window.DL_CL_FILTER ? window.DL_CL_FILTER() : null });
       if (my !== cl.seq) return;
       cl.rows = reset ? r.rows : cl.rows.concat(r.rows); cl.offset = cl.rows.length; cl.more = r.more; cl.total = r.total || 0;
     } catch (e) { if (my === cl.seq) cl.err = e.message || "No se pudo buscar"; }
@@ -54,6 +54,7 @@
       : `<form class="panel stack" style="margin:12px 0"><h3>Enlazar DNI/RUC</h3><p class="tiny">Esta cuenta web aún no tiene ficha de cliente. Al enlazar su documento, sus compras en tienda aparecen aquí.</p>
         <div class="two"><label>DNI o RUC<input id="cl-link-doc" inputmode="numeric" maxlength="11"></label><label>Nombre<input id="cl-link-name" value="${esc(c.name)}"></label></div>
         <button class="btn" type="button" data-act="cl-link">Enlazar</button></form>`}
+      ${window.DL_CL_EXT && c.id ? window.DL_CL_EXT.detailHtml(c, r) : ""}
       <div class="panel stack"><h3>Comprobantes</h3><div class="cust-history">${(d.sales || []).map((s) => `<div class="row"><span><b>${esc(s.number)}</b>${s.by_dni ? ` <span class="tiny">(por DNI)</span>` : ""}<br><span class="tiny">${esc(fecha(s.sold_at))}${s.store_name ? " · " + esc(s.store_name) : ""} · ${esc(STATUS[s.status] || s.status)}</span></span><b class="num">${soles(s.total_cents)}</b></div>`).join("") || `<p class="muted">Sin comprobantes.</p>`}</div></div>
       <div class="panel stack" style="margin-top:12px"><h3>Pedidos web</h3><div class="cust-history">${(d.orders || []).map((o) => `<div class="row"><span><b>${esc(o.code || "#" + o.id)}</b><br><span class="tiny">${esc(fecha(o.created_at))}${o.store_name ? " · " + esc(o.store_name) : ""} · ${esc(STATUS[o.status] || o.status)}</span></span><b class="num">${soles(o.total_cents)}</b></div>`).join("") || `<p class="muted">Sin pedidos web.</p>`}</div></div>`;
   }
@@ -62,6 +63,7 @@
     if (cl.sel) return detailHtml();
     if (!cl.loaded && !cl.loading) setTimeout(() => load(true), 0);
     return `<div class="cust-search"><input id="cl-q" type="search" autocomplete="off" spellcheck="false" placeholder="Buscar por nombre, @usuario, DNI/RUC o celular" value="${esc(cl.q)}" aria-label="Buscar clientes"></div>
+      ${window.DL_CL_EXT ? window.DL_CL_EXT.filterHtml() : ""}
       <div class="cust-list" id="cust-list">${listHtml()}</div>`;
   }
   async function openRow(r) {
@@ -72,6 +74,7 @@
     D().render();
   }
   window.DL_renderClientes = render;
+  window.DL_CL_RELOAD = () => { cl.loaded = false; cl.rows = []; load(true); };
   window.DL_ACTIONS = Object.assign(window.DL_ACTIONS || {}, {
     "cl-open": (el) => openRow(cl.rows[Number(el.dataset.i)]),
     "cl-back": () => { cl.sel = null; cl.det = null; D().render(); },
@@ -96,5 +99,13 @@
   window.DL_INPUT = function (e) {
     if (e.target && e.target.id === "cl-q") { cl.q = e.target.value; clearTimeout(timer); timer = setTimeout(() => load(true), 300); return true; }
     return prev ? prev(e) : false;
+  };
+  // Equipo › list_staff: índice { user_id: fila } (se carga una vez por sesión; null mientras carga o si falla)
+  const st = { by: null, loading: false, uid: null, failed: false };
+  window.DL_STAFF_LIST = () => {
+    const u = D().state.user; if (!u || D().Store.mode !== "remote") return null;
+    if (st.uid !== u.id) { st.by = null; st.uid = u.id; }
+    if (!st.by && !st.loading && !st.failed) { st.loading = true; api().staff("", 0).then((rows) => { st.by = Object.fromEntries(rows.map((r) => [String(r.id), r])); }).catch(() => { st.by = null; st.failed = true; }).finally(() => { st.loading = false; if (st.by && D().ui.admin === "staff") D().render(); }); }
+    return st.by;
   };
 })();

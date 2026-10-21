@@ -9,11 +9,17 @@
     async getMyProfile() {
       if (!S.user) throw new Error("Inicia sesión");
       const uid = encodeURIComponent(S.user.id);
-      const [p, c] = await Promise.all([S.rest("profiles?select=id,email,full_name,dni,phone,username&id=eq." + uid), S.rest("customers?select=id,name,phone,email,document_type,document_number,address&user_id=eq." + uid).catch(() => [])]);
+      const [p, c] = await Promise.all([S.rest("profiles?select=*&id=eq." + uid), S.rest("customers?select=id,name,phone,email,document_type,document_number,address&user_id=eq." + uid).catch(() => [])]);
       return { profile: (p || [])[0] || null, customer: (c || [])[0] || null };
     },
     async saveMyProfile(v) {
       if (!S.user) throw new Error("Inicia sesión");
+      // v14: update_my_profile (nombres y apellidos separados, valida en la base). Si no existe, cae al PATCH directo.
+      try {
+        const r = await S.rpc("update_my_profile", { p_first_name: v.first_name || "", p_last_name: v.last_name || "", p_phone: v.phone || "", p_dni: v.dni || "" });
+        if (S.user) S.user.full_name = r.full_name || S.user.full_name;
+        return { profile: r, customerNote: "" };
+      } catch (e) { if (!(e.status === 404 || /could not find the function/i.test(e.message || ""))) throw e; }
       const uid = encodeURIComponent(S.user.id);
       const body = { full_name: v.full_name, phone: v.phone || null, dni: v.dni || null };
       const rows = await S.rest("profiles?id=eq." + uid, { method: "PATCH", body, prefer: "return=representation" });
