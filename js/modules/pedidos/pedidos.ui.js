@@ -86,15 +86,22 @@
   }
   function renderPago() {
     const c = co(); const qr = isQr(c.payment);
-    const num = c.payment === "PLIN" ? (sf().plin_number || sf().yape_number) : sf().yape_number;
     const shop = (D().state.pubStores || []).find((s) => s.id === String(c.storeId));
+    // v16: número Yape/Plin de la tienda (RECOJO: la elegida; ENVÍO: la principal); respaldo: datos generales de la tienda web
+    const pubs = D().state.pubStores || [];
+    const payStore = (c.delivery === "ENVIO" ? null : shop) || pubs.find((s) => s.is_main) || pubs[0] || {};
+    const isPlin = c.payment === "PLIN";
+    const num = (isPlin ? payStore.plin_number : payStore.yape_number) || (isPlin ? sf().plin_number : sf().yape_number) || "";
+    const holder = (isPlin ? payStore.plin_holder : payStore.yape_holder) || "";
+    const numFmt = num.replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
     const waOk = Boolean(waNum(sf().contact_whatsapp));
     return `${stepsBar("pago")}<form class="stack co-form" data-form="co-pago" novalidate>
       <p class="tiny">${c.delivery === "ENVIO" ? "Envío a: " + esc([c.direccion, c.distrito, c.provincia, c.departamento].filter(Boolean).join(", ")) : "Recojo en: " + esc(shop ? shop.name : "")} · ${esc(c.phone || "")} · <button class="link-btn" type="button" data-act="co-step" data-id="entrega">Cambiar</button></p>
       <div class="pay-choice" role="radiogroup" aria-label="Forma de pago">
         ${["CONTRA_ENTREGA", "YAPE", "PLIN"].map((m) => `<label class="chip ${c.payment === m ? "on" : ""}"><input type="radio" name="payment" value="${m}" ${c.payment === m ? "checked" : ""}> ${m === "CONTRA_ENTREGA" ? (c.delivery === "ENVIO" ? "Contra entrega" : "Efectivo en tienda") : PAY[m]}</label>`).join("")}
       </div>
-      ${qr ? `<div class="panel stack co-proof"><p class="tiny">${num ? `Paga con ${PAY[c.payment]} al <b>${esc(num)}</b> y sube la captura.` : `Paga con ${PAY[c.payment]} y sube la captura. Si no tienes el número, pídelo por WhatsApp.`} Tu pedido queda apartado mientras confirmamos el pago.</p>
+      ${qr ? `<div class="panel stack co-proof">${num ? `<div class="pay-number"><span class="tiny">${esc(PAY[c.payment])}${payStore.name ? " · " + esc(payStore.name) : ""}</span><b class="num">${esc(numFmt)}</b>${holder ? `<span class="tiny">Titular: ${esc(holder)}</span>` : ""}<button class="btn ghost small" type="button" data-act="co-copy" data-v="${esc(num)}">Copiar número</button></div>` : ""}
+        <p class="tiny">${num ? `Paga el total con ${PAY[c.payment]} a este número y sube la captura.` : `Paga con ${PAY[c.payment]} y sube la captura. Si no tienes el número, pídelo por WhatsApp.`} Tu pedido queda apartado mientras confirmamos el pago.</p>
         ${c.proof ? `<img class="proof-preview" alt="Captura del pago" src="${esc(c.proof)}" width="120" height="160">` : ""}
         <label class="btn ghost">${c.proof ? "Cambiar captura" : "Subir captura del pago"}<input type="file" name="proof" accept="image/*" hidden></label></div>`
         : `<p class="tiny">${c.delivery === "ENVIO" ? "Pagas al recibir tu pedido." : "Pagas en la tienda al recoger."}</p>`}
@@ -260,6 +267,7 @@
     "co-pago": async (form) => { readForm(form); await place(); },
   });
   window.DL_ACTIONS = Object.assign(window.DL_ACTIONS || {}, {
+    "co-copy": async (el) => { const v = el.dataset.v || ""; try { await navigator.clipboard.writeText(v); D().toast("Número copiado: " + v); } catch (e) { window.prompt("Copia el número:", v); } },
     "co-step": (el) => { const c = co(); c.err = ""; const f = document.querySelector(".co-form"); if (f) readForm(f); if (el.dataset.id === "carrito") { D().ui.step = "carrito"; D().render(); } else { D().ui.step = el.dataset.id; D().render(); } window.scrollTo(0, 0); },
     "mo-track": async (el) => { const id = el.dataset.id; my.open[id] = !my.open[id]; D().render(); if (my.open[id] && !my.hist[id]) { try { my.hist[id] = { rows: (await api().orderHistory(id)) || [] }; } catch (e) { my.hist[id] = { err: human(e) }; } D().render(); } },
     "mo-cancel": async (el) => {

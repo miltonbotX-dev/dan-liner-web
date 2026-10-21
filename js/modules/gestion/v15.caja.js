@@ -22,7 +22,7 @@
         ${isAdmin() ? `<button class="btn small" type="button" data-act="cx-close" data-id="${esc(o.session_id)}" data-n="${esc(s.store_name + " · " + r.name)}">Cerrar caja</button>` : ""}`
       : l ? `<p class="tiny">Último cierre ${esc(fdate(l.closed_at, true))}${MODE[l.close_mode] ? " · " + MODE[l.close_mode] : ""}</p>
         <p>Esperado ${money(l.expected_cash)} · contado ${l.counted_cash == null ? "—" : money(l.counted_cash)}</p>
-        <p class="diff-amt ${dif < 0 ? "neg" : dif > 0 ? "pos" : ""}">${esc(RES[res] || res || "")}${dif ? " " + (dif > 0 ? "+" : "−") + plain(Math.abs(dif)) : ""}</p>
+        <p><span class="diff-amt ${dif < 0 ? "neg" : dif > 0 ? "pos" : "neutral"}">${esc(RES[res] || res || "")}${dif ? " " + (dif > 0 ? "+" : "−") + plain(Math.abs(dif)) : ""}</span></p>
         <p class="tiny">Fondo dejado ${money(l.float_left)}</p>${res === "SIN_CONTEO" ? `<button class="btn small ghost" type="button" data-act="cx-count" data-id="${esc(l.session_id)}">Registrar conteo</button>` : ""}`
       : `<p class="tiny muted">Sin movimientos.</p>`}</article>`;
   }
@@ -31,7 +31,7 @@
     const list = CX.data || [];
     return `<div class="stack"><div class="row"><h3 class="grow" style="margin:0">Cajas de todas las tiendas</h3><button class="btn small ghost" type="button" data-act="cx-refresh">Actualizar</button></div>
       ${CX.err ? `<p class="alert-text">${esc(CX.err)}</p>` : ""}${!CX.loaded ? `<p class="muted">Cargando…</p>` : ""}
-      ${list.map((s) => `<section class="stack cash-store"><div class="row" style="flex-wrap:wrap"><b class="grow">${esc(s.store_name)}</b><span class="tiny">Horario ${esc(hhmm(s.opens_at) || "—")}–${esc(hhmm(s.closes_at) || "—")}${s.auto_close ? " · cierre automático" : ""}</span>${isAdmin() ? `<button class="link-btn tiny" type="button" data-act="cx-sched" data-id="${esc(s.store_id)}" data-o="${esc(hhmm(s.opens_at))}" data-c="${esc(hhmm(s.closes_at))}" data-a="${s.auto_close ? 1 : 0}">Cambiar horario</button>` : ""}</div>
+      ${list.map((s) => `<section class="stack cash-store"><div class="row" style="flex-wrap:wrap"><b class="grow" style="flex-basis:200px">${esc(s.store_name)}</b><span class="tiny">Horario ${esc(hhmm(s.opens_at) || "—")}–${esc(hhmm(s.closes_at) || "—")}${s.auto_close ? " · cierre automático" : ""}</span>${isAdmin() ? `<button class="link-btn tiny" type="button" data-act="cx-sched" data-id="${esc(s.store_id)}" data-o="${esc(hhmm(s.opens_at))}" data-c="${esc(hhmm(s.closes_at))}" data-a="${s.auto_close ? 1 : 0}">Cambiar horario</button>` : ""}</div>
         <div class="cash-grid">${(s.registers || []).filter((r) => r.is_active !== false).map((r) => cashCard(s, r)).join("") || `<p class="tiny muted">Sin cajas registradas.</p>`}</div></section>`).join("")}</div>`;
   }
   const tabs = window.DL_ADMIN_TABS = window.DL_ADMIN_TABS || [];

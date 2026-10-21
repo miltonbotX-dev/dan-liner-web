@@ -766,7 +766,7 @@
         ${groups.map(([g, ids]) => `<div class="drawer-group"><p class="kicker">${esc(g)}</p>${ids.map((id) => `<a class="drawer-link ${ui.admin === id ? "on" : ""}" href="#admin/${id}" data-drawer-link>${esc(label[id])}</a>`).join("")}</div>`).join("")}
       </nav></div>`;
     return `<section style="padding:22px 0 48px"><p class="kicker">Casa</p>
-      <div class="row admin-title"><button class="icon-btn admin-menu-btn" type="button" data-act="admin-menu" aria-label="Menú">${icon("menu", 20)}</button><h1>Administración</h1><span class="tiny admin-current">${esc(current)}</span></div>
+      <div class="row admin-title"><button class="icon-btn admin-menu-btn" type="button" data-act="admin-menu" aria-label="Secciones de Administración" aria-expanded="${ui.drawer ? "true" : "false"}">${icon("menu", 20)}</button><h1>Administración</h1><span class="tiny admin-current">${esc(current)}</span></div>
       ${drawer}
       ${body}</section>`;
   }

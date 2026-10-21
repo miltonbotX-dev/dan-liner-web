@@ -38,7 +38,7 @@
       const can = allow(["SUPERVISOR", "CAJERO", "VENDEDOR"]);
       const tags = (TG.list || []).filter((t) => t.is_active !== false || TG.edit.orig.includes(String(t.id)));
       const tagsHtml = tags.map((t) => { const on = TG.edit.ids.includes(String(t.id)); const lock = isMayorista(t) && !isAdmin();
-        return `<button type="button" class="tag-chip ${on ? "on" : ""} ${lock ? "locked" : ""}" style="--c:${safeColor(t.color)}" data-act="tg-toggle" data-id="${esc(t.id)}" aria-pressed="${on}" ${lock || !can ? `disabled title="${lock ? "Solo el administrador marca o quita Mayorista" : "Sin permiso"}"` : ""}>${iconSvg(t.icon)}${esc(t.name)}${lock ? ' <span aria-label="bloqueada">🔒</span>' : ""}</button>`; }).join("");
+        return `<button type="button" class="tag-chip ${on ? "on" : ""} ${lock ? "locked" : ""}" style="--c:${safeColor(t.color)}" data-act="tg-toggle" data-id="${esc(t.id)}" aria-pressed="${on}" ${lock || !can ? `disabled title="${lock ? "Solo el administrador marca o quita Mayorista" : "Sin permiso"}"` : ""}>${iconSvg(t.icon)}${esc(t.name)}${lock ? '<span class="sr-only"> (bloqueada)</span>' : ""}</button>`; }).join("");
       const dirty = TG.edit.ids.slice().sort().join() !== TG.edit.orig.slice().sort().join();
       const notes = box.data || [];
       return `<div class="panel stack cust-tags"><div class="row"><h3 class="grow" style="margin:0">Etiquetas</h3>${isAdmin() ? `<a class="tiny" href="#admin/etiquetas">Administrar etiquetas</a>` : ""}</div>
