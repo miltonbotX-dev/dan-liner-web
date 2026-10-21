@@ -193,6 +193,7 @@
     user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     trash: '<path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"/>',
     chev: '<path d="M9 6l6 6-6 6"/>',
+    pencil: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>',
   };
   function icon(name, size) {
     const s = size || 20;
@@ -226,7 +227,7 @@
   function page() {
     const raw = (location.hash || "#coleccion").replace("#", "");
     const [name, sub] = raw.split("/");
-    return { name: name || "coleccion", sub: sub || "" };
+    return { name: name === "cuenta" ? "entrar" : (name || "coleccion"), sub: sub || "" }; // #cuenta = alias de #entrar (vista de cuenta)
   }
   // Mensajes técnicos (tablas, SQL, series…) → texto humano
   function humanError(msg, fallback) {
@@ -240,7 +241,8 @@
     return t;
   }
   function notifyError(err, fallback) { const m = humanError(err && err.message, fallback); if (window.DL_UI) window.DL_UI.notice(m, "error"); else toast(m); }
-  function toast(message) {
+  function toast(message, kind) {
+    if (window.DL_UI && window.DL_UI.toast) return window.DL_UI.toast(message, kind);
     const el = document.getElementById("toast");
     el.hidden = false;
     el.textContent = message;
@@ -323,6 +325,7 @@
     });
   }
 
+  const STORE_ROUTES = ["coleccion", "pieza", "promociones", "mis-pedidos", "tiendas", "contacto"];
   function render() {
     const here = page();
     if (here.name === "admin" && here.sub && here.sub !== ui.admin) { ui.drawer = false; ui.admin = here.sub; ui.staffSel = null; ui.showForm = null; ui.edit = null; }
@@ -330,7 +333,7 @@
     const view = document.getElementById("view");
     ui.tabScroll = ui.tabScroll || {};
     document.querySelectorAll(".tabs[id]").forEach((el) => { ui.tabScroll[el.id] = el.scrollLeft; });
-    document.body.classList.toggle("ui-app", here.name !== "coleccion");
+    document.body.classList.toggle("ui-app", !STORE_ROUTES.includes(here.name) && !(here.name === "entrar" && isClient()));
     const screens = Object.assign({ coleccion: renderCatalog, entrar: renderLogin, taller: renderTaller, admin: renderAdmin, pedido: renderPedido }, window.DL_SCREENS || {});
     view.innerHTML = (screens[here.name] || renderCatalog)();
     syncNav();
@@ -399,8 +402,8 @@
             <strong class="price">${soles(priced.unit)}</strong>${priced.offer ? `<s class="tiny">${soles(priced.list)}</s>` : ""}
           </div>
           <div class="row">
-            <button class="btn ghost small" type="button" data-act="open" data-id="${esc(g.key)}">Ver</button>
             <button class="btn small btn-bag" type="button" data-act="cart-add" data-id="${esc(v.id)}" ${soldOut ? "disabled" : ""}>${icon("bag", 16)} ${soldOut ? "Agotado" : "Agregar"}</button>
+            <a class="more-btn" href="#pieza/${encodeURIComponent(g.key)}">Ver detalles</a>
           </div>
         </div>
       </article>`;
@@ -504,9 +507,8 @@
   }
 
   async function deleteMe() {
-    const t = await DL_UI.prompt("Esto borra tu cuenta y cancela tus pedidos abiertos. Tus comprobantes se conservan por ley.\n\nEscribe ELIMINAR para confirmar:");
-    if (t == null) return;
-    if (t.trim() !== "ELIMINAR") throw new Error("Escribe ELIMINAR en mayúsculas para confirmar");
+    const ok = await window.dlgConfirm("Se borran tus datos de acceso y se cancelan tus pedidos abiertos. Tus comprobantes se conservan por ley. Esta acción no se puede deshacer.", { title: "¿Eliminar tu cuenta?", danger: true, ok: "Sí, eliminar mi cuenta", cancel: "No, volver" });
+    if (!ok) return;
     await Store.v2api.deleteSelf();
     try { localStorage.removeItem("dl-cart"); } catch { }
     ui.cart = []; await Store.signOut(); await reload(); location.hash = "coleccion"; render(); toast("Tu cuenta fue eliminada");
@@ -571,16 +573,25 @@
         </form></div></section>`;
     }
     if (state.user) {
-      return `<section class="stack" style="padding:28px 0 48px; max-width:640px">
-        <p class="kicker">Sesión</p>
-        <h1>${esc(state.user.full_name)}</h1>
-        <p class="muted">${esc(state.user.email)} · ${esc(ROLE_LABEL[state.user.role] || state.user.role)}</p>
-        <div class="row" style="justify-content:flex-start">
-          ${accountMain()}
-          <button class="btn ghost" type="button" data-act="signout">Cerrar sesión</button>
-        </div>
-        ${isClient() ? `<div class="panel stack account-orders"><h3>Mis pedidos</h3>${myOrdersHtml()}</div>
-        <div class="panel stack account-danger"><h3>Eliminar mi cuenta</h3><p class="tiny">Se borran tus datos de acceso. Tus comprobantes se conservan por ley.</p><button class="btn danger" type="button" data-act="delete-me">${icon("trash", 16)} Eliminar mi cuenta</button></div>` : ""}
+      const sub = page().sub;
+      const roleTxt = state.user.role === "PENDIENTE" && (state.user.roles || []).includes("CLIENTE") ? "Cliente" : (ROLE_LABEL[state.user.role] || state.user.role);
+      const ini = String(state.user.full_name || state.user.email || "?").trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join("");
+      const perfil = window.DL_PERFIL ? window.DL_PERFIL.view() : "";
+      if (sub === "datos") return `<section class="stack account" style="padding:24px 0 48px; max-width:640px"><a class="link-btn" href="#cuenta">← Mi cuenta</a>${perfil}</section>`;
+      return `<section class="stack account" style="padding:24px 0 48px; max-width:640px">
+        <p class="kicker">Mi cuenta</p>
+        <div class="account-card"><span class="avatar" aria-hidden="true">${esc(ini || "?")}</span>
+          <div style="min-width:0"><h1 style="margin:0;overflow-wrap:anywhere;font-size:24px;line-height:1.15">${esc(state.user.full_name)}</h1><p class="muted tiny" style="margin:4px 0 0;overflow-wrap:anywhere">${esc(state.user.email)} · ${esc(roleTxt)}</p></div>
+          <button class="edit-btn" type="button" data-act="acc-edit" aria-label="Editar mis datos" title="Editar mis datos">${icon("pencil", 18)}</button></div>
+        <div class="row" style="justify-content:flex-start">${accountMain()}<button class="btn ghost" type="button" data-act="signout">Cerrar sesión</button></div>
+        <nav class="account-menu" aria-label="Mi cuenta">
+          <a href="#cuenta/datos">Mis datos</a>
+          ${isClient() ? `<a href="#mis-pedidos">Mis pedidos</a>
+          <button type="button" data-act="acc-soon" data-id="Mis direcciones"><span>Mis direcciones</span><span class="tiny muted">Próximamente</span></button>
+          <button type="button" data-act="acc-soon" data-id="Mis promociones"><span>Mis promociones</span><span class="tiny muted">Próximamente</span></button>` : ""}
+        </nav>
+        ${isClient() ? `<div class="account-menu" style="margin-top:28px"><button type="button" class="account-danger" data-act="delete-me"><span>Eliminar mi cuenta</span>${icon("trash", 16)}</button></div>
+        <p class="tiny muted">Se borran tus datos de acceso. Tus comprobantes se conservan por ley.</p>` : ""}
       </section>`;
     }
     const up = ui.authMode === "up";
@@ -1943,7 +1954,7 @@
         ${vars.length ? `<div class="stack opt-group"><span class="tiny">Talla</span><div class="size-pick" role="group" aria-label="Talla">${vars.map((x) => { const off = stockOf(x) <= 0; return `<button type="button" class="chip opt ${x.id === v.id ? "on" : ""} ${off ? "off" : ""}" data-act="pd-size" data-id="${esc(x.id)}" ${off ? "disabled title=\"Agotado\"" : ""} aria-pressed="${x.id === v.id}">${esc(x.size_label || "Única")}</button>`; }).join("")}</div></div>` : ""}
         ${v.description ? `<p>${esc(v.description)}</p>` : ""}
         <p class="tiny">Código ${esc(v.sku || "")} · ${soldOut ? "Agotado" : "Disponible"}</p>
-        <div class="row"><button class="btn btn-bag" type="button" data-act="cart-add" data-id="${esc(v.id)}" ${soldOut ? "disabled" : ""}>${icon("bag", 16)} ${soldOut ? "Agotado" : "Agregar talla " + esc(v.size_label || "")}</button></div>
+        <div class="row"><button class="btn btn-bag" type="button" data-act="cart-add" data-id="${esc(v.id)}" ${soldOut ? "disabled" : ""}>${icon("bag", 16)} ${soldOut ? "Agotado" : "Agregar talla " + esc(v.size_label || "")}</button><button class="more-btn" type="button" data-act="pdp-open" data-id="${esc(d.key)}">Ver detalles</button></div>
       </div></div>`;
     const track = document.getElementById("pd-track");
     if (track) {
@@ -2336,6 +2347,7 @@
     state, ui, Store, PAY, ROLES, PERMS, ROLE_LABEL, render, reload, toast, moneyHtml, esc, soles, nid, localDay, byId, nameOf, allow, isAdmin, myRoles, rolesOf,
     icon, ordersPanel, priceOf, stockIn, stockOf, applyDelta, nextNumber, safeSrc, driveDirect, table, refField, bars, group, sumCents, completedSales, denied, visibleProducts,
     openSession: () => openSession(), detailVariant: () => detailVariant(),
+    productKey, productGroups, bySize, groupImages, cardHtml, pickVariant, myOrdersHtml, isClient, page, closeSheet: () => { const sh = document.getElementById("sheet"); if (sh && sh.open) sh.close(); },
     sell: (order) => window.DLCaja.sell(order),
     voidSale: (id) => window.DLCaja.voidSale(id),
   };

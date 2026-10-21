@@ -5,16 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dan Liner · Sistema</title>
   <meta name="description" content="Dan Liner, sastrería en Lima. Colección, caja, taller y administración.">
-  <link rel="icon" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon.png?v=28r1">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0a0a">
   <style>html:not(.dl-ready) body{background:#000}html:not(.dl-ready) body>*{visibility:hidden}html:not(.dl-ready) body::before{content:"DAN-LINER";position:fixed;inset:0;display:grid;place-items:center;color:#d6b56d;font:500 20px/1 Georgia,serif;letter-spacing:.35em;visibility:visible}</style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/app.css?v=28r1">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=JetBrains+Mono:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap">
 </head>
 <body>
   <header class="site-header">
     <div class="wrap header-row">
+      <button class="icon-btn menu-btn" type="button" data-act="site-menu" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h12M4 17h16"/></svg>
+      </button>
       <a class="brand" href="#coleccion">
+        <img class="brand-logo" src="assets/logo-gold.png" alt="" width="28" height="28">
         <strong>DAN-LINER</strong>
       </a>
       <nav class="nav" aria-label="Secciones">
@@ -29,6 +35,20 @@
       </button>
     </div>
   </header>
+  <div class="site-drawer" id="site-drawer" hidden>
+    <div class="drawer-scrim" data-act="site-menu"></div>
+    <nav class="site-drawer-panel" aria-label="Menú">
+      <div class="sd-head"><img src="assets/logo-gold.png" alt="" width="40" height="40"><span>DAN-LINER</span><button class="icon-btn" type="button" data-act="site-menu" aria-label="Cerrar">&times;</button></div>
+      <a class="sd-link" data-ic="coleccion" href="#coleccion">Colección</a>
+      <a class="sd-link" data-ic="promos" href="#promociones">Promociones</a>
+      <a class="sd-link" data-ic="pedidos" href="#mis-pedidos">Mis pedidos</a>
+      <a class="sd-link" data-ic="cuenta" href="#cuenta">Mi cuenta</a>
+      <a class="sd-link" data-ic="tiendas" href="#tiendas">Nuestras tiendas</a>
+      <a class="sd-link" data-ic="contacto" href="#contacto">Contacto</a>
+      <button class="sd-link" data-ic="tema" type="button" data-act="theme">Modo claro / oscuro</button>
+      <p class="sd-foot">Ternos de fábrica · La Victoria, Lima</p>
+    </nav>
+  </div>
   <main id="view" class="wrap">
     <div class="dl-loader"><img src="assets/logo.jpg" alt="Dan Liner"><i></i><span>Estilo y elegancia</span></div>
   </main>
@@ -50,27 +70,29 @@
   <div id="toast" class="toast" hidden></div>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <!-- core: configuración, cliente Supabase, sesión y datos -->
-  <script src="js/core/config.js"></script>
-  <script src="js/core/ui-dialogs.js"></script>
-  <script src="js/modules/imagenes/imagenes.js"></script>
-  <script src="js/core/http.js"></script>
-  <script src="js/core/session.js"></script>
-  <script src="js/core/data.js"></script>
+  <script src="js/core/config.js?v=28r1"></script>
+  <script src="js/core/ui-dialogs.js?v=28r1"></script>
+  <script src="js/modules/imagenes/imagenes.js?v=28r1"></script>
+  <script src="js/core/http.js?v=28r1"></script>
+  <script src="js/core/session.js?v=28r1"></script>
+  <script src="js/core/data.js?v=28r1"></script>
   <!-- módulos: lógica (service) -->
-  <script src="js/modules/coleccion/coleccion.service.js"></script>
-  <script src="js/modules/pedidos/pedidos.service.js"></script>
-  <script src="js/modules/cuenta/cuenta.service.js"></script>
-  <script src="js/modules/notificaciones/notificaciones.service.js"></script>
-  <script src="js/modules/caja/caja.service.js"></script>
-  <script src="js/modules/inventario/inventario.service.js"></script>
-  <script src="js/modules/admin/admin.service.js"></script>
-  <script src="js/modules/impresion/impresion.service.js"></script>
-  <script src="js/modules/clientes/clientes.service.js"></script>
+  <script src="js/modules/coleccion/coleccion.service.js?v=28r1"></script>
+  <script src="js/modules/pedidos/pedidos.service.js?v=28r1"></script>
+  <script src="js/modules/cuenta/cuenta.service.js?v=28r1"></script>
+  <script src="js/modules/notificaciones/notificaciones.service.js?v=28r1"></script>
+  <script src="js/modules/caja/caja.service.js?v=28r1"></script>
+  <script src="js/modules/inventario/inventario.service.js?v=28r1"></script>
+  <script src="js/modules/admin/admin.service.js?v=28r1"></script>
+  <script src="js/modules/impresion/impresion.service.js?v=28r1"></script>
+  <script src="js/modules/clientes/clientes.service.js?v=28r1"></script>
   <!-- módulos: interfaz -->
-  <script src="js/modules/contacto/contacto.ui.js"></script>
-  <script src="js/modules/caja/caja.ui.js"></script>
-  <script src="js/modules/operaciones/operaciones.ui.js"></script>
-  <script src="js/modules/clientes/clientes.ui.js"></script>
-  <script src="js/modules/shell/app.ui.js"></script>
+  <script src="js/modules/contacto/contacto.ui.js?v=28r1"></script>
+  <script src="js/modules/caja/caja.ui.js?v=28r1"></script>
+  <script src="js/modules/operaciones/operaciones.ui.js?v=28r1"></script>
+  <script src="js/modules/clientes/clientes.ui.js?v=28r1"></script>
+  <script src="js/modules/cuenta/perfil.ui.js?v=28r1"></script>
+  <script src="js/modules/tienda/tienda.ui.js?v=28r1"></script>
+  <script src="js/modules/shell/app.ui.js?v=28r1"></script>
 </body>
 </html>

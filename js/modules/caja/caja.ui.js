@@ -722,6 +722,27 @@
     return "No se pudo abrir la cámara: " + ((e && e.message) || e);
   }
   const scan = { stream: null, timer: null, reader: null, last: "", lastAt: 0, added: [] };
+  // «Beep de caja» generado con WebAudio (sin archivos). El contexto se desbloquea al abrir el escáner (toque del usuario).
+  let beepCtx = null;
+  function audioUnlock() {
+    try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; if (!beepCtx) beepCtx = new AC(); if (beepCtx.state === "suspended") beepCtx.resume().catch(() => {}); return beepCtx; } catch { return null; }
+  }
+  function beep(ok) {
+    const ctx = audioUnlock(); if (!ctx) return;
+    try {
+      const t = ctx.currentTime + 0.01;
+      const tone = (freq, start, dur, vol) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = ok === false ? "sawtooth" : "square"; o.frequency.setValueAtTime(freq, start);
+        g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(vol, start + 0.008);
+        g.gain.setValueAtTime(vol, start + dur - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+        o.connect(g); g.connect(ctx.destination); o.start(start); o.stop(start + dur + 0.02);
+      };
+      if (ok === false) tone(220, t, 0.22, 0.08); // código no encontrado: tono grave corto
+      else tone(2730, t, 0.12, 0.12); // beep clásico de lector (~2.7 kHz, 120 ms)
+    } catch { }
+  }
+  window.DL_BEEP = beep;
   function scanMsg(text, ok) {
     const m = document.getElementById("scan-msg"); if (!m) return;
     m.hidden = false; m.className = "scan-msg " + (ok ? "ok" : "bad"); m.innerHTML = (ok ? IC("check", 16) + " " : "") + esc(text);
@@ -735,22 +756,24 @@
     const api = D().Store.v2api;
     const lookup = api && api.variantByCode ? api.variantByCode(code, D().ui.storeId).catch(() => undefined) : Promise.resolve(undefined);
     lookup.then((r) => {
-      if (r === null) { scanMsg("Código no encontrado: " + code, false); return; }
+      if (r === null) { beep(false); scanMsg("Código no encontrado: " + code, false); return; }
       if (r && r.is_active === false) { scanMsg("Esa prenda está desactivada: " + code, false); return; }
       const p = r ? D().byId("products", String(r.variant_id)) : local();
-      if (!p) { scanMsg("Código no encontrado: " + code, false); return; }
+      if (!p) { beep(false); scanMsg("Código no encontrado: " + code, false); return; }
       addScanned(p, r);
     });
   }
   function addScanned(p, r) {
     addToCart(p.id);
+    beep(true);
     if (navigator.vibrate) navigator.vibrate(60);
     scan.added.unshift(p.name + (p.size_label ? " · T. " + p.size_label : ""));
-    scanMsg("Agregado ✓ " + p.name + (p.size_label ? " · T. " + p.size_label : "") + (r && r.stock != null ? " · stock tienda " + r.stock : ""), true);
+    scanMsg("Agregado: " + p.name + (p.size_label ? " · T. " + p.size_label : "") + (r && r.stock != null ? " · stock tienda " + r.stock : ""), true);
     const list = document.getElementById("scan-added"); if (list) list.innerHTML = scan.added.slice(0, 8).map((t) => `<div class="row qr-item">${IC("check", 14)} <span>${esc(t)}</span></div>`).join("");
     const c = document.getElementById("cj-cart"); if (c) c.innerHTML = cartHtml();
   }
   async function openQr() {
+    audioUnlock();
     closeQr(true);
     const ov = document.createElement("div");
     ov.id = "scan-ov"; ov.className = "overlay qr-overlay";

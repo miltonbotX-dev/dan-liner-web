@@ -12,7 +12,7 @@
     mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
   };
   function waText() {
-    const v = D().ui.detail && document.getElementById("sheet") && document.getElementById("sheet").open ? D().detailVariant() : null;
+    const v = D().ui.detail && document.getElementById("sheet") && document.getElementById("sheet").open ? D().detailVariant() : (window.DL_PDP ? window.DL_PDP() : null);
     return v ? `Hola DAN-LINER, me interesa: ${v.name}${v.size_label ? " talla " + v.size_label : ""}${v.color ? " · " + v.color : ""}. ¿Está disponible?` : "Hola DAN-LINER, quisiera información sobre sus ternos.";
   }
   function mountFooter() {

@@ -901,3 +901,140 @@ html[data-theme='light'] .login-grid .two .btn:not(.ghost) { color:#fff; }
 html[data-theme='light'] .login-grid .md-form { background:#fff; box-shadow:0 1px 0 #e6dfd2, 0 10px 30px rgba(26,24,20,.06); }
 html[data-theme='light'] .login-grid .md-form input { border-color:#d9d0bf; color:#1a1814; }
 html[data-theme='light'] .login-grid .md-tonal { color:#fff !important; }
+
+/* ===== v28 · IU ===== */
+/* Header: aire arriba, menú a la izquierda, logo + nombre */
+.site-header { padding-top:max(10px, env(safe-area-inset-top)); }
+.header-row { min-height:64px; gap:12px; }
+.menu-btn { flex:none; }
+.brand { display:flex; align-items:center; gap:10px; }
+.brand-logo { width:28px; height:28px; object-fit:contain; }
+@media (max-width:600px){ .header-row{min-height:58px} .brand strong{font-size:15px; letter-spacing:.32em} }
+/* Menú lateral del cliente */
+.site-drawer { position:fixed; inset:0; z-index:80; }
+.site-drawer[hidden] { display:none; }
+.site-drawer .drawer-scrim { position:absolute; inset:0; background:rgba(0,0,0,.5); animation:dl-fade .2s; }
+.site-drawer-panel { position:absolute; top:0; bottom:0; left:0; width:min(320px,86vw); background:#0d0c0a; color:#ece6da; padding:max(18px,env(safe-area-inset-top)) 20px 24px; display:flex; flex-direction:column; gap:4px; overflow:auto; animation:dl-drawer .28s cubic-bezier(.2,.7,.2,1); }
+html[data-theme='light'] .site-drawer-panel { background:#f7f4ee; color:#1a1814; }
+@keyframes dl-drawer { from{transform:translateX(-100%)} to{transform:none} }
+.sd-head { display:flex; align-items:center; gap:12px; padding-bottom:18px; margin-bottom:8px; border-bottom:1px solid rgba(214,181,109,.25); }
+.sd-head span { flex:1; font:500 16px/1 "Cormorant Garamond",Georgia,serif; letter-spacing:.35em; color:#d6b56d; }
+.sd-head .icon-btn { font-size:22px; }
+.sd-link { text-decoration:none; display:flex; align-items:center; gap:14px; padding:13px 6px; font-size:14px; letter-spacing:.06em; color:inherit; background:none; border:0; text-align:left; cursor:pointer; border-radius:8px; }
+.sd-link::before { content:""; width:20px; height:20px; flex:none; background:#d6b56d; -webkit-mask:var(--ic) center/contain no-repeat; mask:var(--ic) center/contain no-repeat; }
+.sd-link:hover, .sd-link:focus-visible { background:rgba(214,181,109,.1); }
+.sd-foot { margin-top:auto; font-size:11px; letter-spacing:.12em; opacity:.55; }
+/* WhatsApp flotante con su ícono oficial */
+.wa-float { background:#25d366 url(../assets/whatsapp.svg) center/28px no-repeat !important; box-shadow:0 6px 18px rgba(37,211,102,.35); transition:transform .2s; }
+.wa-float > * { display:none; }
+.wa-float:active { transform:scale(.94); }
+/* Ficha completa del producto (página aparte) */
+.pdp { display:grid; grid-template-columns:1.1fr .9fr; gap:40px; padding:24px 0 60px; }
+.pdp-gallery { display:grid; gap:8px; }
+.pdp-gallery img { width:100%; aspect-ratio:3/4; object-fit:cover; animation:dl-fade .4s; }
+.pdp-info { position:sticky; top:84px; align-self:start; display:grid; gap:16px; }
+.pdp-info h1 { font:400 34px/1.1 "Cormorant Garamond",Georgia,serif; }
+.pdp-acc details { border-top:1px solid var(--line); padding:14px 0; }
+.pdp-acc summary { cursor:pointer; list-style:none; display:flex; justify-content:space-between; font-size:12px; letter-spacing:.16em; text-transform:uppercase; }
+.pdp-acc summary::after { content:"+"; color:var(--gold); }
+.pdp-acc details[open] summary::after { content:"–"; }
+.more-btn { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); background:none; border:0; border-bottom:1px solid var(--gold); padding:4px 0; }
+@media (max-width:760px){ .pdp{grid-template-columns:1fr; gap:18px} .pdp-gallery{grid-auto-flow:column; grid-auto-columns:88%; overflow-x:auto; scroll-snap-type:x mandatory} .pdp-gallery img{scroll-snap-align:center} .pdp-info{position:static} }
+/* Mi cuenta */
+.account-card { display:grid; grid-template-columns:64px 1fr auto; gap:14px; align-items:center; padding:18px; background:var(--surface); border:1px solid var(--line); border-radius:16px; }
+.account-card .avatar { width:64px; height:64px; border-radius:50%; display:grid; place-items:center; background:var(--ink); color:var(--surface); font-size:24px; }
+.edit-btn { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:none; display:grid; place-items:center; color:var(--gold); }
+.account-menu { display:grid; margin-top:12px; }
+.account-menu a, .account-menu button { display:flex; justify-content:space-between; padding:14px 4px; border-bottom:1px solid var(--line); color:inherit; background:none; border-left:0; border-right:0; border-top:0; text-align:left; }
+.account-menu a::after { content:"›"; color:var(--muted); }
+.account-danger { color:#c0392b !important; }
+/* Seguimiento del pedido */
+.track { display:grid; gap:0; padding:8px 0; }
+.track-step { display:grid; grid-template-columns:26px 1fr; gap:12px; position:relative; padding-bottom:18px; }
+.track-step::before { content:""; width:14px; height:14px; margin:3px 6px; border-radius:50%; border:2px solid var(--line); background:var(--surface); z-index:1; }
+.track-step::after { content:""; position:absolute; left:12px; top:20px; bottom:0; width:2px; background:var(--line); }
+.track-step:last-child::after { display:none; }
+.track-step.done::before { background:var(--gold); border-color:var(--gold); }
+.track-step.done::after { background:var(--gold); }
+.track-step.now::before { border-color:var(--gold); box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 25%,transparent); }
+.track-step small { display:block; color:var(--muted); font-size:12px; }
+.order-code { letter-spacing:.08em; }
+/* Etiquetas de clientes (VIP, Mayorista…) con color e ícono */
+.tag-chip { --c:var(--gold); display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600; letter-spacing:.06em; color:var(--c); background:color-mix(in srgb,var(--c) 14%,transparent); border:1px solid color-mix(in srgb,var(--c) 40%,transparent); }
+.tag-chip .ti { font-size:12px; }
+.tag-filter { border:1px solid var(--line); border-radius:12px; padding:0 12px; background:var(--surface); }
+.tag-filter > summary { list-style:none; padding:10px 0; display:flex; justify-content:space-between; cursor:pointer; font-size:13px; color:var(--muted); }
+.tag-filter > summary::after { content:""; width:8px; height:8px; border-right:2px solid currentColor; border-bottom:2px solid currentColor; transform:rotate(45deg); transition:transform .2s; }
+.tag-filter[open] > summary::after { transform:rotate(-135deg); }
+.tag-filter .tags { display:flex; flex-wrap:wrap; gap:6px; padding-bottom:12px; }
+.tag-chip.on { background:var(--c); color:#fff; }
+.color-dots { display:flex; gap:8px; }
+.color-dots button { width:26px; height:26px; border-radius:50%; border:2px solid transparent; }
+.color-dots button.on { border-color:var(--ink); }
+/* Promociones, combos y cuenta regresiva */
+.promo-banner { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 18px; background:#0d0c0a; color:#ece6da; border:1px solid rgba(214,181,109,.35); }
+.promo-banner b { color:#d6b56d; letter-spacing:.12em; text-transform:uppercase; font-size:12px; }
+.countdown { display:inline-flex; gap:6px; font-family:'JetBrains Mono',monospace; }
+.countdown span { min-width:36px; padding:4px 6px; text-align:center; background:rgba(214,181,109,.12); color:#d6b56d; border-radius:6px; font-size:14px; }
+.countdown span small { display:block; font-size:8px; letter-spacing:.1em; opacity:.7; }
+.combo-card { display:grid; gap:10px; padding:16px; border:1px solid var(--gold); background:var(--surface); }
+.combo-items { display:flex; align-items:center; gap:6px; }
+.combo-items img { width:64px; height:80px; object-fit:cover; }
+.combo-items .plus { color:var(--gold); font-size:18px; }
+.combo-price s { color:var(--muted); font-size:13px; margin-right:8px; }
+.badge-promo { position:absolute; top:10px; left:10px; z-index:2; padding:3px 8px; background:#0d0c0a; color:#d6b56d; font-size:10px; letter-spacing:.16em; text-transform:uppercase; }
+/* Cajas de todas las tiendas (admin) */
+.cash-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; }
+.cash-card { display:grid; gap:8px; padding:16px; background:var(--surface); border:1px solid var(--line); border-radius:14px; border-top:3px solid var(--line); }
+.cash-card.open { border-top-color:#2e8b57; }
+.cash-card.closed { border-top-color:var(--muted); }
+.cash-card.diff { border-top-color:#c0392b; }
+.cash-card .row { justify-content:space-between; font-size:13px; }
+.cash-card .diff-amt { color:#c0392b; font-weight:600; }
+/* Envío tipo checkout detallado */
+.ship-choice { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.ship-choice label { display:grid; gap:4px; padding:14px; border:1px solid var(--line); border-radius:12px; cursor:pointer; }
+.ship-choice label:has(input:checked) { border-color:var(--gold); background:color-mix(in srgb,var(--gold) 8%,transparent); }
+.ship-choice input { position:absolute; opacity:0; }
+.pay-choice { display:flex; gap:8px; flex-wrap:wrap; }
+.support-link { font-size:13px; color:var(--gold); text-decoration:underline; text-underline-offset:3px; }
+.sd-link[data-ic="coleccion"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M8%203l4%203%204-3%205%204-3%203v11H6V10L3%207z%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="promos"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M3%2012V4h8l10%2010-8%208z%22/%3E%3Ccircle%20cx%3D%227.5%22%20cy%3D%228.5%22%20r%3D%221.5%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="pedidos"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%207h12l-1%2013H7zM9%207a3%203%200%200%201%206%200%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="cuenta"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%228%22%20r%3D%224%22/%3E%3Cpath%20d%3D%22M4%2021c1-5%204-7%208-7s7%202%208%207%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="tiendas"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M12%2021s-7-6.5-7-12a7%207%200%200%201%2014%200c0%205.5-7%2012-7%2012z%22/%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%229%22%20r%3D%222.5%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="contacto"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M4%205h16v11H8l-4%204z%22/%3E%3C/svg%3E")}
+.sd-link[data-ic="tema"]{--ic:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M21%2014.5A8.5%208.5%200%201%201%209.5%203%207%207%200%200%200%2021%2014.5z%22/%3E%3C/svg%3E")}
+/* Pie de página ordenado, estilo marca */
+.site-footer { display:grid; grid-template-columns:1.2fr repeat(auto-fit,minmax(180px,1fr)); gap:32px; padding:48px 0 calc(32px + env(safe-area-inset-bottom)); border-top:1px solid rgba(214,181,109,.25); }
+.site-footer strong { display:block; font-size:11px; letter-spacing:.2em; text-transform:uppercase; margin-bottom:10px; }
+.site-footer p, .site-footer a { font-size:13px; line-height:1.9; color:var(--muted); text-decoration:none; }
+.site-footer .ft-brand { display:grid; gap:10px; align-content:start; }
+@media (max-width:600px){ .site-footer{grid-template-columns:1fr; gap:24px; text-align:left} .site-footer > div:not(.ft-brand){padding-top:20px; border-top:1px solid var(--line)} }
+/* Diálogos propios y perfil (reemplaza el provisional de Grok Bot) */
+.dl-notice { cursor:pointer; }
+html[data-theme='light'] .dl-notice { background:#fff; color:#1a1814; box-shadow:0 10px 30px rgba(0,0,0,.12); }
+.dl-confirm > div { border:1px solid var(--line); box-shadow:0 18px 50px rgba(0,0,0,.35); border-top:3px solid var(--gold); }
+.dl-dlg-title { margin:0; font:500 20px/1.2 "Cormorant Garamond",Georgia,serif; letter-spacing:.02em; }
+.dl-dlg-alert p, .dl-dlg-confirm p, .dl-dlg-prompt p { margin:0; color:var(--muted); font-size:14px; line-height:1.5; }
+.dl-dlg-danger > div, .dl-dlg-danger.dl-confirm > div { border-top-color:#c0392b; }
+.dl-dlg-danger .btn.primary, .dl-dlg-danger [data-ok] { background:#c0392b; border-color:#c0392b; color:#fff; }
+.dl-confirm-input { width:100%; box-sizing:border-box; padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--canvas); color:var(--ink); font-size:16px; }
+.dl-confirm-input:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 20%,transparent); }
+.me-card { display:grid; gap:16px; padding:20px; background:var(--surface); border:1px solid var(--line); border-radius:16px; }
+.me-card .me-head { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.me-card .me-head h2, .me-card .me-head h3 { margin:0; }
+.me-card dl { display:grid; grid-template-columns:auto 1fr; gap:10px 16px; margin:0; }
+.me-card dt { color:var(--muted); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+.me-card dd { margin:0; font-size:15px; }
+.me-form { display:grid; gap:12px; }
+.me-form .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:480px){ .me-form .grid2{grid-template-columns:1fr} }
+.me-form .field-err { color:#c0392b; font-size:12px; }
+.me-form .field-err:empty { display:none; }
+.me-form input:invalid:not(:placeholder-shown) { border-color:#c0392b; }
+/* v28 R1 · Grok Bot · mínimo: el velo del menú admin (z-index 59) tapaba el panel del menú lateral */
+.site-drawer .drawer-scrim { z-index:0; }
+.site-drawer-panel { z-index:1; }
+body.drawer-open .wa-float { display:none !important; }
+.account-menu a { text-decoration:none; }
