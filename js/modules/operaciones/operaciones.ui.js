@@ -23,7 +23,7 @@
     const hours = (a) => a.check_out ? (new Date(a.check_out) - new Date(a.check_in)) / 36e5 : 0;
     const sum = people.map((p) => { const r = rows.filter((a) => a.staff_id === p.id); return { p, days: new Set(r.map((a) => D().localDay(a.check_in))).size, h: r.reduce((n, a) => n + hours(a), 0), late: r.filter(late).length, early: r.filter(early).length, open: r.filter((a) => !a.check_out).length }; });
     return `${window.DL_attendanceBar ? window.DL_attendanceBar() : ""}
-      <form class="panel filters" data-form="noop"><label>Desde<input type="date" id="att-from" value="${op.attFrom}"></label><label>Hasta<input type="date" id="att-to" value="${op.attTo}"></label></form>
+      <form novalidate class="panel filters" data-form="noop"><label>Desde<input type="date" id="att-from" value="${op.attFrom}"></label><label>Hasta<input type="date" id="att-to" value="${op.attTo}"></label></form>
       <p class="tiny">Horario ${OPEN_H}:00–${CLOSE_H}:00 · tardanza después de ${OPEN_H}:${String(OPEN_M).padStart(2, "0")}.</p>
       <div class="table-wrap"><table class="tnum"><thead><tr><th>Persona</th><th>Días</th><th>Horas</th><th>Tard.</th><th>Sal. temp.</th></tr></thead><tbody>
       ${sum.map((r) => `<tr><td>${esc(r.p.full_name)}${r.open ? ' <span class="badge ok">en turno</span>' : ""}</td><td class="num">${r.days}</td><td class="num">${r.h.toFixed(1)}</td><td class="num ${r.late ? "bad" : ""}">${r.late}</td><td class="num">${r.early}</td></tr>`).join("")}</tbody></table></div>
@@ -57,7 +57,7 @@
     const owe = list.filter((c) => c.direction === "RECIBIDO" && c.status !== "CERRADA").reduce((n, c) => n + conBalance(c), 0);
     const owed = list.filter((c) => c.direction === "PRESTADO" && c.status !== "CERRADA").reduce((n, c) => n + conBalance(c), 0);
     return `<div class="stats"><article class="stat"><span class="tiny">Debemos a marcas</span><b>${D().moneyHtml(owe)}</b></article><article class="stat"><span class="tiny">Nos deben tiendas</span><b>${D().moneyHtml(owed)}</b></article></div>
-      ${op.conForm ? `<form class="panel stack" data-form="op-con"><h3>Nueva consignación</h3>
+      ${op.conForm ? `<form novalidate class="panel stack" data-form="op-con"><h3>Nueva consignación</h3>
         <label>Tipo<select name="direction"><option value="RECIBIDO">Recibida (nos prestan una marca)</option><option value="PRESTADO">Prestada (prestamos a otra tienda)</option></select></label>
         <label>Marca / tienda<input name="counterpart" required placeholder="Nombre del socio"></label>
         <label>Producto<select name="product_id" required>${prods.map((p) => `<option value="${esc(p.id)}">${esc(p.name)} · T.${esc(p.size_label || "—")} ${esc(p.color || "")}</option>`).join("")}</select></label>
@@ -137,7 +137,7 @@
     const orders = (data().production_orders || []).slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
     const fabrics = data().fabrics || []; const tailors = data().tailors || [];
     const ST = { EN_TALLER: "en taller", PARCIAL: "parcial", RECIBIDA: "recibida", CANCELADA: "cancelada" };
-    const form = op.poForm ? `<form class="panel stack" data-form="op-po"><h3>Nueva orden de producción</h3>
+    const form = op.poForm ? `<form novalidate class="panel stack" data-form="op-po"><h3>Nueva orden de producción</h3>
       <label>Producto (nombre)<input name="product_name" required list="po-names" placeholder="Nombre de la prenda"></label>
       <datalist id="po-names">${[...new Set((data().products || []).map((p) => p.name))].map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
       <div class="two">${D().refField("category_id", "Categoría", "categories", null, "", true)}${D().refField("brand_id", "Marca", "brands")}</div>
@@ -148,7 +148,7 @@
       <div class="row"><button class="btn" type="submit">Crear orden</button><button class="btn ghost" type="button" data-act="op-po-form">Cancelar</button></div></form>`
       : `<button class="btn" type="button" data-act="op-po-form">+ Nueva orden</button>`;
     const recvOrder = op.recv && D().byId("production_orders", op.recv);
-    const recvForm = recvOrder ? (() => { const got = receivedOf(recvOrder); const pend = {}; sizesOf(recvOrder).forEach(([s, q]) => { pend[s] = Math.max(0, q - (got[s] || 0)); }); return `<form class="panel stack" data-form="op-recv" data-id="${esc(recvOrder.id)}" id="recv-form"><h3>Recepción de mercadería · ${esc(recvOrder.number)}</h3>
+    const recvForm = recvOrder ? (() => { const got = receivedOf(recvOrder); const pend = {}; sizesOf(recvOrder).forEach(([s, q]) => { pend[s] = Math.max(0, q - (got[s] || 0)); }); return `<form novalidate class="panel stack" data-form="op-recv" data-id="${esc(recvOrder.id)}" id="recv-form"><h3>Recepción de mercadería · ${esc(recvOrder.number)}</h3>
       <p class="tiny">${esc(recvOrder.product_name)} · ${esc(recvOrder.color)} · ${esc((D().byId("fabrics", recvOrder.fabric_id) || {}).name || "")}. Cuenta lo que llegó por talla (prellenado con lo pendiente).</p>
       <div class="two"><label>Color recibido<input name="color" value="${esc(recvOrder.color)}"></label><label>Tela<select name="fabric_id">${fabrics.map((f) => `<option value="${esc(f.id)}" ${f.id === recvOrder.fabric_id ? "selected" : ""}>${esc(f.name)}</option>`).join("")}</select></label></div>
       ${sizeGrid("r_", pend)}
@@ -216,7 +216,7 @@
   function renderTela() {
     const list = (data().fabric_receipts || []).slice().sort((a, b) => String(b.received_at).localeCompare(String(a.received_at)));
     const fabrics = data().fabrics || [];
-    return `${op.frForm ? `<form class="panel stack" data-form="op-fr"><h3>Recepción de tela</h3>
+    return `${op.frForm ? `<form novalidate class="panel stack" data-form="op-fr"><h3>Recepción de tela</h3>
       <div class="two"><label>N° de guía<input name="guia" required placeholder="Nº de guía"></label><label>Fábrica / proveedor<input name="supplier" required list="fr-sup"></label></div>
       <datalist id="fr-sup">${(data().fabric_suppliers || []).map((s) => `<option value="${esc(s.name)}">`).join("")}</datalist>
       <div class="two"><label>Tela<select name="fabric_id" required>${fabrics.map((f) => `<option value="${esc(f.id)}">${esc(f.name)} · ${esc(f.color || "")}</option>`).join("")}</select></label><label>Color<input name="color"></label></div>

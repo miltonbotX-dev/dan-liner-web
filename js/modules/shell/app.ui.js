@@ -568,7 +568,7 @@
       return `<section class="login-grid"><div class="stack">
         <p class="kicker">Recuperar acceso</p><h1>Nueva contraseña</h1>
         <p class="muted">${esc(state.user.email || "")}</p>
-        <form class="stack md-form" data-form="new-password">
+        <form novalidate class="stack md-form" data-form="new-password">
           <label>Nueva contraseña<input name="password" type="password" minlength="8" autocomplete="new-password" required></label>
           <label>Repite la contraseña<input name="password2" type="password" minlength="8" autocomplete="new-password" required></label>
           <button class="btn full md-tonal" type="submit">Guardar contraseña</button>
@@ -586,6 +586,7 @@
         <div class="account-card"><span class="avatar" aria-hidden="true">${esc(ini || "?")}</span>
           <div style="min-width:0"><h1 style="margin:0;overflow-wrap:anywhere;font-size:24px;line-height:1.15">${esc(state.user.full_name)}</h1><p class="muted tiny" style="margin:4px 0 0;overflow-wrap:anywhere">${esc(state.user.email)} · ${esc(roleTxt)}</p></div>
           <button class="edit-btn" type="button" data-act="acc-edit" aria-label="Editar mis datos" title="Editar mis datos">${icon("pencil", 18)}</button></div>
+        ${window.DL_CUENTA_EXTRA ? window.DL_CUENTA_EXTRA() : ""}
         <div class="row" style="justify-content:flex-start">${accountMain()}<button class="btn ghost" type="button" data-act="signout">Cerrar sesión</button></div>
         <nav class="account-menu" aria-label="Mi cuenta">
           <a href="#cuenta/datos">Mis datos</a>
@@ -610,7 +611,7 @@
       return `<section class="login-grid"><div class="stack">
         <p class="kicker">Recuperar acceso</p><h1>Olvidé mi contraseña</h1>
         <p class="muted">Escribe el correo de tu cuenta y te enviaremos un enlace para crear una nueva contraseña.</p>
-        <form class="stack md-form" data-form="forgot">
+        <form novalidate class="stack md-form" data-form="forgot">
           <label>Correo<input name="email" type="text" inputmode="email" autocomplete="email" autocapitalize="none" spellcheck="false" required placeholder="tucorreo@ejemplo.com"></label>
           <p class="tiny">Si entras con usuario o celular, usa el correo con el que te registraste.</p>
           <button class="btn full md-tonal" type="submit">Enviar enlace</button>
@@ -626,7 +627,7 @@
           <button class="btn ${up ? "" : "ghost"}" type="button" data-act="auth-mode" data-id="up">Crear cuenta</button>
           <button class="btn ${up ? "ghost" : ""}" type="button" data-act="auth-mode" data-id="in">Ya tengo cuenta</button>
         </div>
-        <form class="stack md-form" data-form="auth">
+        <form novalidate class="stack md-form" data-form="auth">
           ${up ? `<label class="md-field">Nombre de usuario<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-z0-9_.]{3,30}" minlength="3" maxlength="30" required placeholder="ej. juan.perez"><span class="tiny" id="user-check"></span></label><label>Nombre<input name="name" autocomplete="name" required></label><label>Celular o WhatsApp<input name="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="15" required placeholder="9 dígitos, ej. 931246675" aria-describedby="su-phone-err"></label><p class="field-error tiny" id="su-phone-err" role="alert" ${ui.suPhoneErr ? "" : "hidden"}>${esc(ui.suPhoneErr || "")}</p><label>DNI (opcional)<input name="dni" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" title="8 dígitos"></label>` : ""}
           ${up ? `<label>Correo<input name="email" type="email" autocomplete="email" required></label>` : `<label>Usuario, correo o celular<input name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>`}
           <label>Contraseña<input name="password" type="password" minlength="8" autocomplete="${up ? "new-password" : "current-password"}" required></label>
@@ -667,14 +668,14 @@
   function tallerTelas() {
     const lots = state.data.fabric_lots || [];
     return renderCrud("fabrics") + renderCrud("fabric_suppliers") + `<div class="panel stack" style="margin-top:16px"><h3>Lote nuevo</h3>
-      <form class="stack" data-form="lot">${refField("supplier_id", "Proveedor", "fabric_suppliers")}${refField("fabric_id", "Tela", "fabrics")}
+      <form novalidate class="stack" data-form="lot">${refField("supplier_id", "Proveedor", "fabric_suppliers")}${refField("fabric_id", "Tela", "fabrics")}
       <div class="two"><label>Metros comprados<input name="meters" type="number" min="0.1" step="0.1" required></label><label>Metros que quedan<input name="left" type="number" min="0" step="0.1" required></label></div>
       <button class="btn" type="submit">Guardar lote</button></form>
       ${table(["Tela", "Proveedor", "Quedan"], lots.map((row) => [nameOf("fabrics", row.fabric_id), nameOf("fabric_suppliers", row.supplier_id), (Number(row.meters_left_cm) / 100).toFixed(2) + " m"]))}</div>`;
   }
   function tallerSastres() { return renderCrud("tailors"); }
   function tallerEnviar() {
-    return `<form class="panel stack" data-form="send" style="max-width:640px">
+    return `<form novalidate class="panel stack" data-form="send" style="max-width:640px">
       <h3>Enviar corte</h3>
       ${refField("tailor_id", "Sastre", "tailors")}
       <label>Lote<select name="fabric_lot_id" required>${(state.data.fabric_lots || []).map((row) => `<option value="${esc(row.id)}">${esc(nameOf("fabrics", row.fabric_id))} · ${(Number(row.meters_left_cm) / 100).toFixed(2)} m</option>`).join("")}</select></label>
@@ -687,7 +688,7 @@
   }
   function tallerRecibir() {
     const open = (state.data.work_orders || []).filter((row) => row.status !== "RECIBIDO");
-    return `<form class="panel stack" data-form="receive" style="max-width:640px"><h3>Recibir del sastre</h3>
+    return `<form novalidate class="panel stack" data-form="receive" style="max-width:640px"><h3>Recibir del sastre</h3>
       <label>Orden<select name="work_order_id" required>${open.map((row) => `<option value="${esc(row.id)}">${esc(row.order_number)} · ${esc(row.piece_type)}</option>`).join("")}</select></label>
       <div class="two"><label>Talla<input name="size_label" required></label><label>Cantidad<input name="quantity" type="number" min="1" value="1" required></label></div>
       <button class="btn" type="submit">Entrar piezas al taller</button></form>`;
@@ -695,7 +696,7 @@
   function tallerEmpatar() {
     const pieces = (state.data.workshop_pieces || []).filter((row) => row.status === "LIBRE" && Number(row.quantity) > 0);
     const whs = state.data.warehouses || [];
-    return `<form class="panel stack" data-form="assemble">
+    return `<form novalidate class="panel stack" data-form="assemble">
       <h3>Empatar terno</h3>
       <p class="tiny">Marca saco y pantalón de la misma tela y talla. El chaleco es opcional. Sale una pieza nueva a la colección.</p>
       ${pieces.map((row) => `<label class="checks"><input type="checkbox" name="piece" value="${esc(row.id)}"> ${esc(row.piece_type)} ${esc(row.size_label)} · ${esc(nameOf("fabrics", row.fabric_id))} · ${esc(row.quantity)}</label>`).join("") || `<p class="muted">No hay piezas libres.</p>`}
@@ -706,7 +707,7 @@
   }
   function tallerPedidos() {
     const orders = state.data.store_orders || [];
-    return `<div class="split"><form class="panel stack" data-form="store-order"><h3>Pedido entre tiendas</h3>
+    return `<div class="split"><form novalidate class="panel stack" data-form="store-order"><h3>Pedido entre tiendas</h3>
       ${refField("store_id", "Tienda que pide", "stores")}
       <label>Nota<textarea name="notes" required></textarea></label>
       <button class="btn" type="submit">Anotar pedido</button></form>
@@ -747,10 +748,10 @@
     else body = renderResumen();
     const GROUPS = [
       ["Ventas", ["resumen", "ventas", "pedidos", "customers", "promos", "adelantos", "cajas", "consignacion"]],
-      ["Productos", ["products", "categories", "sizes", "fabrics", "colors", "brands", "stock", "traslados", "produccion", "recepcion", "partners"]],
+      ["Productos", ["products", "categories", "sizes", "fabrics", "colors", "brands", "stock", "prestados", "traslados", "produccion", "recepcion", "partners"]],
       ["Tiendas", ["stores", "warehouses", "cash_registers", "document_series", "panel"]],
       ["Personal", ["staff", "asistencia"]],
-      ["Configuración", ["inicio", "expenses"]],
+      ["Configuración", ["inicio", "personalizacion", "legal", "etiquetas", "expenses"]],
       ["Reportes", ["reporte"]],
     ];
     const label = Object.fromEntries(tabs);
@@ -907,7 +908,7 @@
     const bySize = group(items, (r) => (byId("products", r.product_id) || {}).size_label || "—", () => 0).sort((a, b) => b.units - a.units);
     const sellers = [...new Set((state.data.sales || []).map((s) => s.seller_name).filter(Boolean))].sort();
     const stores = (state.data.stores || []);
-    return `<form class="panel filters" data-form="noop">
+    return `<form novalidate class="panel filters" data-form="noop">
         <label>Desde<input type="date" data-vf="from" value="${esc(vf.from)}"></label>
         <label>Hasta<input type="date" data-vf="to" value="${esc(vf.to)}"></label>
         <label>Tienda<select data-vf="store"><option value="">Todas</option>${stores.map((s) => `<option value="${esc(s.id)}" ${s.id === vf.store ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
@@ -1034,7 +1035,7 @@
         </details>
         <div class="variant-photos">${z.images.map((u, n) => `<button type="button" class="vr-ph" data-act="vr-ph-del" data-id="${i}" data-n="${n}" aria-label="Quitar foto ${n + 1}"><img alt="" src="${esc(safeSrc(u))}"></button>`).join("")}<button type="button" class="add-ph" data-act="vr-ph-add" data-id="${i}" aria-label="Agregar foto de la talla ${esc(z.size_label)}">+</button></div>
       </div>`).join("");
-    const form = `<form class="panel stack" data-form="product" id="product-form">
+    const form = `<form novalidate class="panel stack" data-form="product" id="product-form">
       <h3>${P.product_id ? "Editar pieza" : "Nueva pieza"}</h3>
       <label>Nombre<input name="name" required value="${esc(P.name)}" placeholder="Nombre de la prenda"></label>
       <div class="two">${refField("category_id", "Categoría", "categories", null, P.category_id, true)}${refField("brand_id", "Marca", "brands", null, P.brand_id)}</div>
@@ -1222,7 +1223,7 @@
         rows.push([label(product), house.name, stockIn(product.id, house.id), product.min_stock]);
       });
     });
-    return `<form class="panel stack" data-form="stock">
+    return `<form novalidate class="panel stack" data-form="stock">
       <h3>Ajustar stock</h3>
       <div class="two">${refField("product_id", "Pieza", "products", sorted.map((p) => ({ id: p.id, name: label(p) })))}${refField("warehouse_id", "Almacén", "warehouses")}</div>
       <div class="two"><label>Cantidad que debe quedar<input name="quantity" type="number" min="0" required></label><label>Nota<input name="note" placeholder="Motivo"></label></div>
@@ -1231,7 +1232,7 @@
   }
   function renderMoves() {
     const moves = state.data.partner_moves || [];
-    return `<div class="split" style="margin-top:16px"><form class="panel stack" data-form="partner-move"><h3>Movimiento</h3>
+    return `<div class="split" style="margin-top:16px"><form novalidate class="panel stack" data-form="partner-move"><h3>Movimiento</h3>
       ${refField("partner_id", "Mayorista", "partners")}
       <label>Tipo<select name="kind"><option value="ENTREGA">Entrega</option><option value="PAGO">Pago</option><option value="DEVOLUCION">Devolución</option></select></label>
       ${refField("product_id", "Pieza", "products")}
@@ -1280,7 +1281,7 @@
     // Equipo = solo personal (ADMIN, SUPERVISOR, CAJERO, VENDEDOR, ALMACENERO o PENDIENTE sin roles). Las cuentas solo-CLIENTE van a Admin › Clientes.
     const isClientOnly = (p) => { const r = (p.roles || []).filter(Boolean); return r.length > 0 && r.every((x) => x === "CLIENTE"); };
     const people = (state.data.staff || []).filter((p) => !isClientOnly(p)).sort((a, b) => String(a.full_name).localeCompare(String(b.full_name), "es"));
-    return `<form class="panel stack" data-form="store-staff" data-id="${esc(store.id)}" id="store-staff">
+    return `<form novalidate class="panel stack" data-form="store-staff" data-id="${esc(store.id)}" id="store-staff">
       <h3>Personal de ${esc(store.name)}</h3>
       <p class="tiny">Encargado: <b>${esc(store.manager_id ? staffName(store.manager_id) : "—")}</b> (se elige arriba, en el formulario de la tienda)</p>
       <div class="table-wrap"><table><thead><tr><th>Aquí</th><th>Persona y rol</th></tr></thead><tbody>
@@ -1320,7 +1321,7 @@
     const q = (ui.mq || "").toLowerCase();
     const money = (v) => (Number(v || 0) / 100).toFixed(2);
     const can = allow(["SUPERVISOR"]);
-    return `<form class="panel stack" data-form="prices" style="margin-bottom:16px">
+    return `<form novalidate class="panel stack" data-form="prices" style="margin-bottom:16px">
       <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3>Precios por mayor</h3>${can ? `<button class="btn small" type="submit">Guardar cambios</button>` : ""}</div>
       <input id="mq" placeholder="Filtrar pieza, talla o SKU" value="${esc(ui.mq || "")}">
       <div class="table-wrap"><table class="grid-edit"><thead><tr><th>Pieza</th><th>Venta</th><th>Mínimo</th><th>Mayor</th></tr></thead><tbody>
@@ -1363,7 +1364,7 @@
     const canCreate = isAdmin() || mine.length > 0;
     const roleOpts = isAdmin() ? ROLES : ["VENDEDOR", "ALMACENERO"];
     const storeOpts = isAdmin() ? stores : stores.filter((s) => mine.includes(s.id));
-    const form = ui.showForm === "staff" && canCreate ? `<form class="panel stack" data-form="new-user" style="margin-bottom:14px"><h3>Nuevo usuario</h3>
+    const form = ui.showForm === "staff" && canCreate ? `<form novalidate class="panel stack" data-form="new-user" style="margin-bottom:14px"><h3>Nuevo usuario</h3>
       <div class="two"><label>Nombre<input name="full_name" required></label><label>Celular<input name="phone" type="tel" inputmode="tel" minlength="9" required></label></div>
       <div class="two"><label>Correo o usuario<input name="email" required autocomplete="off" placeholder="correo@ejemplo.com"></label><label>Contraseña<input name="password" type="password" minlength="8" required autocomplete="new-password"></label></div>
       <div class="two"><label>Rol / permisos<select name="role">${roleOpts.map((r) => `<option value="${r}" ${r === "VENDEDOR" ? "selected" : ""}>${esc(ROLE_LABEL[r])}</option>`).join("")}</select></label>
@@ -1400,13 +1401,13 @@
         <div class="panel"><p class="kicker">Lo que más vende</p>${bars(top, (r) => r.key, (r) => r.units, (r) => r.units + " uds · " + soles(r.cents))}</div>
         ${admin ? `<div class="stack">
           ${managedHtml(p)}
-          <form class="panel stack" data-form="staff-edit" data-id="${esc(p.id)}"><h3>Rol y tienda</h3>
+          <form novalidate class="panel stack" data-form="staff-edit" data-id="${esc(p.id)}"><h3>Rol y tienda</h3>
             <div class="two"><label>Rol principal<select name="role">${ROLES.map((r) => `<option value="${r}" ${r === p.role ? "selected" : ""}>${esc(ROLE_LABEL[r])}</option>`).join("")}</select></label>
             <label>Tienda<select name="store_id"><option value="">—</option>${stores.map((s) => `<option value="${esc(s.id)}" ${s.id === p.store_id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label></div>
             <fieldset class="photo-box"><legend>Roles y permisos (se suman)</legend><div class="row" style="flex-wrap:wrap;gap:10px">${ROLES.filter((r) => r !== "PENDIENTE").concat(PERMS).map((r) => `<label class="checks"><input type="checkbox" name="roles_${r}" ${rolesOf(p).includes(r) ? "checked" : ""}> ${esc(ROLE_LABEL[r])}</label>`).join("")}</div></fieldset>
             <label>Nombre<input name="full_name" value="${esc(p.full_name)}" required></label>
             <button class="btn" type="submit">Guardar</button></form>
-          <form class="panel stack" data-form="staff-pass" data-id="${esc(p.id)}"><h3>Restablecer contraseña</h3>
+          <form novalidate class="panel stack" data-form="staff-pass" data-id="${esc(p.id)}"><h3>Restablecer contraseña</h3>
             <input name="password" type="password" minlength="8" required placeholder="Nueva contraseña (8+)" autocomplete="new-password">
             <button class="btn ghost" type="submit">Cambiar contraseña</button></form>
           <div class="row" style="gap:8px;flex-wrap:wrap">
@@ -1475,7 +1476,7 @@
     return `<div class="split">
       <div class="panel stack"><h3>Vista previa</h3>
         <iframe id="home-preview" title="Vista previa de la colección" src="index.html?preview=1#coleccion" style="width:100%;height:min(72vh,640px);border:0;border-radius:12px;background:#000"></iframe></div>
-      <form class="panel stack" data-form="home-settings" id="home-form">
+      <form novalidate class="panel stack" data-form="home-settings" id="home-form">
       <h3>Inicio de la colección</h3>
       <label>Estilo del inicio${opt("home_hero_style", [["full", "Foto completa"], ["split", "Mitad y mitad"], ["text", "Solo texto"]])}</label>
       <label>Foto principal (enlace de Drive)<input name="home_hero_image" inputmode="url" placeholder="Enlace de Google Drive" value="${esc(h.home_hero_image)}"></label>
@@ -1568,7 +1569,7 @@
     const endBtn = !editing || !canEdit ? "" : (used && hasActive) || table === "stores" || table === "warehouses"
       ? (editing.is_active === false ? `<button class="btn ghost" type="button" data-act="crud-on" data-table="${table}" data-id="${esc(editing.id)}">Activar</button>` : `<button class="btn danger" type="button" data-act="${used ? "crud-off" : "del"}" data-table="${table}" data-id="${esc(editing.id)}">${used ? "Desactivar" : "Eliminar"}</button>`)
       : used ? `<p class="tiny">Ya se usó: no se puede eliminar.</p>` : `<button class="btn danger" type="button" data-act="del" data-table="${table}" data-id="${esc(editing.id)}">Eliminar</button>`;
-    const form = showForm ? `<form class="panel stack" data-form="crud" data-table="${table}" id="crud-form">
+    const form = showForm ? `<form novalidate class="panel stack" data-form="crud" data-table="${table}" id="crud-form">
       <h3>${editing ? "Editar" : nuevo} ${esc(noun)}</h3>
       <input type="hidden" name="id" value="${editing ? esc(editing.id) : ""}">
       ${specRow.fields.map((field) => fieldHtml(field, editing)).join("")}
@@ -2037,13 +2038,16 @@
     const sum = `<div class="row total-row cart-total"><span>Total</span><b>${moneyHtml(total)}</b></div>`;
     let body = "";
     if (step === "carrito") {
-      body = lines.length ? `<div class="stack cart-list">${lines.map(({ line, p }) => `<div class="row cart-line"><img class="thumb" loading="lazy" decoding="async" width="48" height="48" alt="" src="${esc(safeSrc(p.image_url))}"><span class="grow"><b>${esc(p.name)}</b><br><span class="tiny">${esc([p.size_label ? "Talla " + p.size_label : "", p.color || ""].filter(Boolean).join(" · "))}</span></span>
-        <span class="qty"><button type="button" data-act="qty" data-cart="public" data-id="${esc(p.id)}" data-dir="-1">−</button><span>${line.qty}</span><button type="button" data-act="qty" data-cart="public" data-id="${esc(p.id)}" data-dir="1">+</button></span><b class="num">${soles(priceOf(p).unit * line.qty)}</b></div>`).join("")}</div>${sum}
-        <div class="row"><a class="btn ghost" href="#coleccion">Seguir comprando</a><button class="btn" type="button" data-act="step" data-id="datos">Continuar</button></div>`
-        : `<div class="empty-cart stack">${icon("bag", 40)}<p class="muted">Tu carrito está vacío.</p><a class="btn" href="#coleccion">Ver colección</a></div>`;
+      body = lines.length ? `<div class="cart-v2"><div class="cart-brand"><img src="assets/logo-gold.png" alt="" width="34" height="34"><div><b>Tu bolsa</b><span class="tiny">${lines.reduce((a, x) => a + x.line.qty, 0)} prenda(s) · DAN-LINER</span></div></div>
+        <div class="stack cart-list">${lines.map(({ line, p }) => `<div class="cart-line"><img class="thumb" loading="lazy" decoding="async" width="72" height="96" alt="" src="${esc(safeSrc(p.image_url))}"><div class="cart-info"><b>${esc(p.name)}</b><span class="tiny">${esc([p.size_label ? "Talla " + p.size_label : "", p.color || ""].filter(Boolean).join(" · "))}</span>
+        <div class="cart-ctl"><span class="qty"><button type="button" data-act="qty" data-cart="public" data-id="${esc(p.id)}" data-dir="-1" aria-label="Quitar uno">−</button><span>${line.qty}</span><button type="button" data-act="qty" data-cart="public" data-id="${esc(p.id)}" data-dir="1" aria-label="Agregar uno">+</button></span><b class="num">${soles(priceOf(p).unit * line.qty)}</b></div></div></div>`).join("")}</div>
+        <div class="cart-sum"><div class="row"><span>Subtotal</span><b class="num">${soles(total)}</b></div><div class="row tiny"><span>Envío</span><span>Se calcula en el siguiente paso</span></div>${sum}
+        <button class="btn full" type="button" data-act="step" data-id="datos">Continuar con mi pedido</button><a class="btn ghost full" href="#coleccion">Seguir comprando</a>
+        <ul class="cart-trust"><li>Paga con Yape, Plin o contra entrega</li><li>Recoge en tienda o recíbelo en casa</li><li>Cambios dentro de 7 días</li></ul></div></div>`
+        : `<div class="empty-cart stack"><img src="assets/logo-gold.png" alt="" width="56" height="56"><h2>Tu bolsa está vacía</h2><p class="muted">Descubre ternos de fábrica con acabado de sastrería.</p><a class="btn" href="#coleccion">Ver colección</a></div>`;
     } else if (step === "datos") {
       const c = ui.checkout || (ui.checkout = {});
-      body = `<form class="stack" data-form="checkout-datos">
+      body = `<form novalidate class="stack" data-form="checkout-datos">
         <label>Nombre<input name="name" required value="${esc(c.name || (state.user && state.user.full_name) || "")}"></label>
         <label>Celular o WhatsApp<input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="15" required placeholder="9 dígitos, ej. 931246675" aria-describedby="phone-err" value="${esc(c.phone || (state.user && state.user.phone) || "")}"></label>
         <p class="field-error tiny" id="phone-err" role="alert" ${ui.phoneErr ? "" : "hidden"}>${esc(ui.phoneErr || "")}</p>
@@ -2052,7 +2056,7 @@
     } else if (step === "entrega") {
       const c = ui.checkout || (ui.checkout = {});
       const shops = state.pubStores || [];
-      body = `<form class="stack" data-form="checkout-entrega">
+      body = `<form novalidate class="stack" data-form="checkout-entrega">
         <label class="checks"><input type="radio" name="mode" value="recojo" ${c.mode !== "delivery" ? "checked" : ""}> Recojo en tienda</label>
         <label class="checks"><input type="radio" name="mode" value="delivery" ${c.mode === "delivery" ? "checked" : ""}> Envío a domicilio</label>
         <label>Tienda que atiende tu pedido<select name="store" required>${shops.map((x) => `<option value="${esc(x.id)}" ${String(c.store) === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>

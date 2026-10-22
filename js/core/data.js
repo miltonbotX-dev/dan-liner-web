@@ -53,6 +53,7 @@
       if (db[dbKey] == null) return;
       out[k] = map ? (Object.keys(map).find((x) => map[x] === db[dbKey]) || "") : db[dbKey];
     });
+    if (db.ui_palette) out.ui_palette = db.ui_palette; if (db.ui_season) out.ui_season = db.ui_season; // v32: paleta/adorno (BD v17)
     out._db = db; // v29: claves crudas (v15: razon_social, ruc, terminos, privacidad, envios_info…)
     return out;
   }

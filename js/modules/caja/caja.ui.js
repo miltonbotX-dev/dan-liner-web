@@ -71,7 +71,10 @@
     const st = store();
     const ses = mySession();
     const tabs = [["vender", "Vender"], ["pedidos", "Pedidos web"], ["reportes", "Reportes"], ["stock", "Stock"], ["traslados", "Traslados"], ["adelantos", "Adelantos"], ["precios", "Precios"], ["cuadre", "Apertura / cierre"]];
-    const body = { vender: tabVender, pedidos: () => D().ordersPanel(D().ui.storeId), reportes: tabReportes, stock: tabStock, traslados: tabTraslados, adelantos: tabAdelantos, precios: tabPrecios, cuadre: tabCuadre }[cj.tab] || tabVender;
+    const bodies = { vender: tabVender, pedidos: () => D().ordersPanel(D().ui.storeId), reportes: tabReportes, stock: tabStock, traslados: tabTraslados, adelantos: tabAdelantos, precios: tabPrecios, cuadre: tabCuadre };
+    // v32: pestañas extra de módulos (ej. Consignar, BD v17) — window.DL_CAJA_TABS = [{ id, label, show(), render() }]
+    (window.DL_CAJA_TABS || []).forEach((t) => { if (!t.show || t.show()) { tabs.splice(tabs.length - 1, 0, [t.id, t.label]); bodies[t.id] = t.render; } });
+    const body = bodies[cj.tab] || tabVender;
     const incoming = (data().transfers || []).filter((t) => (t.to_warehouse_id === wh() && t.status === "ENVIADO") || (t.from_warehouse_id === wh() && t.status === "SOLICITADO")).length;
     return `<section class="pos">
       <div class="pos-head counter-card">
@@ -89,6 +92,7 @@
         </div>
         <div class="counter-att">${window.DL_attendanceBar()}</div>
       </div>
+      ${window.DL_CAJA_TOP ? window.DL_CAJA_TOP(ses, st) : ""}
       <div class="tabs" id="caja-tabs">${tabs.map(([id, l]) => `<button type="button" class="chip ${cj.tab === id ? "on" : ""}" data-act="cj-tab" data-id="${id}">${l}${id === "traslados" && incoming ? ` <b class="dot">${incoming}</b>` : ""}</button>`).join("")}</div>
       ${body()}
     </section>${cj.last ? ticketOverlay(cj.last) : ""}${overlayHtml()}`;
@@ -106,7 +110,7 @@
     const st = store();
     const last = st && lastClosed(st.id);
     const lastSales = last ? sessionSales(last.id).filter((s) => s.status === "COMPLETED") : [];
-    return `<form class="panel stack" data-form="cj-open">
+    return `<form novalidate class="panel stack" data-form="cj-open">
       <h3>Abrir caja · ${esc(st ? st.name : "")}</h3>
       ${last ? `<div class="note"><b>Último cierre:</b> ${fecha(last.closed_at)} ${hhmm(last.closed_at)} por ${esc(D().nameOf("staff", last.user_id))}<br>
         Ventas ${lastSales.length} · ${soles(D().sumCents(lastSales, "total_cents"))} · diferencia ${soles(last.difference_cents || 0)}<br>
@@ -454,7 +458,7 @@
     return `<div class="overlay"><div class="sheet-lite"><h3><i class="fas fa-truck-fast"></i> Traer de otra tienda</h3>
       <p><b>${esc(p.name || "")}</b> <span class="tiny">${esc(variantLabel(p))}</span><br><span class="tiny">Llega a: ${esc(whName(wh()))} · aquí hay ${D().stockIn(p.id, wh())}</span></p>
       ${src === null ? `<p class="muted">Buscando stock…</p><button class="btn ghost" type="button" data-act="cj-ov-close">Cancelar</button>`
-      : src.length ? `<form class="stack" data-form="cj-qt"><label>Desde<select name="from">${mine.length ? `<optgroup label="Mis tiendas">${mine.map(opt).join("")}</optgroup>` : ""}${other.length ? `<optgroup label="Otras tiendas">${other.map(opt).join("")}</optgroup>` : ""}</select></label>
+      : src.length ? `<form novalidate class="stack" data-form="cj-qt"><label>Desde<select name="from">${mine.length ? `<optgroup label="Mis tiendas">${mine.map(opt).join("")}</optgroup>` : ""}${other.length ? `<optgroup label="Otras tiendas">${other.map(opt).join("")}</optgroup>` : ""}</select></label>
         <label>Cantidad<input name="qty" type="number" min="1" value="${need}"></label>
         <p class="tiny">Quedas registrado como quien lleva la prenda; se avisa al encargado del origen.</p>
         <div class="row" style="gap:6px"><button class="btn" type="submit">Traer ahora</button><button class="btn ghost" type="button" data-act="cj-ov-close">Cancelar</button></div></form>`
@@ -651,7 +655,7 @@
   }
   window.DL_canCuadre = canCuadre;
   function cuadreLogin() {
-    return `<form class="panel stack auth-box" data-form="cj-auth"><h3><i class="fas fa-user-shield"></i> Autorizar cuadre de caja</h3>
+    return `<form novalidate class="panel stack auth-box" data-form="cj-auth"><h3><i class="fas fa-user-shield"></i> Autorizar cuadre de caja</h3>
       <p class="tiny">Tu usuario no tiene permiso “Cuadrar caja”. Que el encargado, supervisor o administrador ingrese aquí su usuario y clave. Tu sesión no se cierra.</p>
       <label>Usuario o correo<input name="email" autocomplete="off" required></label>
       <label>Contraseña<input name="password" type="password" required autocomplete="off"></label>
@@ -659,14 +663,16 @@
   }
   function tabCuadre() {
     const ses = mySession();
-    const authorized = canCuadre(me()) || (cj.authBy && cj.authBy.at > Date.now() - 15 * 60e3);
+    // v32 (BD v17): sin permiso de cierre, el encargado autoriza con su PIN dentro del mismo formulario (close_register_with_pin)
+    const pinFlow = !!(window.DL_CLOSE_AUTH && window.DL_CLOSE_AUTH.active());
+    const authorized = canCuadre(me()) || (cj.authBy && cj.authBy.at > Date.now() - 15 * 60e3) || pinFlow;
     if (!authorized) return cuadreLogin();
     const hist = (data().cash_sessions || []).filter((s) => s.status === "CLOSED" && (s.store_id === D().ui.storeId || s.user_id === me().id)).sort((a, b) => String(b.closed_at).localeCompare(String(a.closed_at))).slice(0, 15);
     const histHtml = `<div class="panel"><h3>Cuaderno de cierres</h3>${hist.length ? `<div class="table-wrap"><table class="tnum"><thead><tr><th>Fecha</th><th>Ventas</th><th>Dif.</th><th>Fondo</th></tr></thead><tbody>${hist.map((s) => { const ss = sessionSales(s.id).filter((x) => x.status === "COMPLETED"); return `<tr><td>${fecha(s.closed_at)}<br><span class="tiny">${esc(D().nameOf("stores", s.store_id))} · ${esc(D().nameOf("staff", s.user_id))}</span></td><td class="num">${soles(D().sumCents(ss, "total_cents"))}<br><span class="tiny">${ss.length} boletas</span></td><td class="num ${Number(s.difference_cents) ? "bad" : ""}">${soles(s.difference_cents || 0)}</td><td class="num">${soles(s.float_left_cents ?? 0)}</td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Sin cierres.</p>`}</div>`;
     if (!ses) return `<p class="muted">No tienes caja abierta.</p>${histHtml}`;
     const exp = expected(ses);
     const ss = sessionSales(ses.id).filter((s) => s.status === "COMPLETED");
-    return `${cj.authBy && !canCuadre(me()) ? `<div class="note"><i class="fas fa-user-shield"></i> Autorizado por <b>${esc(cj.authBy.name)}</b> <button type="button" class="btn ghost small" data-act="cj-auth-end">Terminar</button></div>` : ""}<form class="panel stack" data-form="cj-close"><h3>Cuadre de caja</h3>
+    return `${cj.authBy && !canCuadre(me()) ? `<div class="note"><i class="fas fa-user-shield"></i> Autorizado por <b>${esc(cj.authBy.name)}</b> <button type="button" class="btn ghost small" data-act="cj-auth-end">Terminar</button></div>` : ""}<form novalidate class="panel stack" data-form="cj-close"><h3>Cuadre de caja</h3>
       <p class="tiny">${ss.length} boletas · vendido ${soles(D().sumCents(ss, "total_cents"))} · fondo inicial ${soles(ses.opening_cents)}</p>
       <div class="table-wrap"><table class="tnum"><thead><tr><th>Medio</th><th>Esperado</th><th>Contado</th></tr></thead><tbody>
       ${PAYS.map(([k, l]) => `<tr><td>${l}${k === "CASH" ? '<br><span class="tiny">incluye fondo</span>' : ""}</td><td class="num">${soles(exp[k] || 0)}</td><td><input class="money" inputmode="decimal" name="c_${k}" data-exp="${exp[k] || 0}" value="${((exp[k] || 0) / 100).toFixed(2)}"></td></tr>`).join("")}
@@ -674,6 +680,7 @@
       <div class="two"><label>Gastos pagados con caja (S/)<input name="gastos" inputmode="decimal" value="0.00"></label><label>Fondo que dejas para mañana (S/)<input name="float" inputmode="decimal" value="${((ses.opening_cents || 0) / 100).toFixed(2)}"></label></div>
       <label>Nota<input name="note" placeholder="Nota (opcional)"></label>
       <div id="cj-diff" class="note"></div>
+      ${pinFlow ? window.DL_CLOSE_AUTH.inline(ses, canCuadre(me())) : ""}
       <button class="btn" type="submit">Cerrar caja</button></form>${histHtml}`;
   }
   function updateDiff() {
@@ -683,6 +690,7 @@
     PAYS.forEach(([k]) => { diff += money(f.elements["c_" + k].value) - Number(f.elements["c_" + k].dataset.exp); });
     diff += money(f.elements.gastos.value);
     const cash = money(f.elements.c_CASH.value); const fl = money(f.elements.float.value);
+    if (window.DL_CLOSE_SUMMARY) { box.className = "stack"; box.innerHTML = window.DL_CLOSE_SUMMARY({ f, diff, cash, float: fl, exp: PAYS.reduce((n, [k]) => n + Number(f.elements["c_" + k].dataset.exp || 0), 0), counted: PAYS.reduce((n, [k]) => n + money(f.elements["c_" + k].value), 0) }); return; }
     box.innerHTML = `Diferencia total: <b class="${diff ? "bad" : ""}">${soles(diff)}</b> ${diff > 0 ? "(sobra)" : diff < 0 ? "(falta)" : "· cuadra"}<br>Efectivo a entregar en tienda principal: <b>${soles(cash - fl)}</b>`;
   }
   async function closeCaja(form) {
@@ -691,13 +699,21 @@
     PAYS.forEach(([k]) => { counted[k] = money(form.elements["c_" + k].value); diff += counted[k] - (exp[k] || 0); });
     const gastos = money(form.elements.gastos.value); diff += gastos;
     const fl = money(form.elements.float.value);
-    if (!await DL_UI.confirm("¿Cerrar caja? Diferencia " + soles(diff))) return;
+    if (!await DL_UI.confirm(diff ? "Hay un descuadre de " + soles(diff) + (diff < 0 ? " (falta)" : " (sobra)") + ". Se avisará al administrador. ¿Cerrar caja igual?" : "¿Cerrar caja? Todo cuadra.", { danger: !!diff, title: "Cerrar caja" })) return;
     if (REMOTE()) {
       const api = D().Store.v2api;
-      if (gastos) await api.addExpense(ses.id, gastos, "Gastos de caja (cierre)");
+      const expKey = ses.id + ":" + gastos; // si el PIN falla y se reintenta, el gasto no se registra dos veces
+      if (gastos && cj.expAdded !== expKey) { await api.addExpense(ses.id, gastos, "Gastos de caja (cierre)"); cj.expAdded = expKey; }
       const note = [form.elements.note.value.trim(), cj.authBy ? "Autorizó " + cj.authBy.name : ""].filter(Boolean).join(" · ") || null;
-      const r = await api.closeCash(ses.id, counted, note, fl);
-      cj.authBy = null; await D().reload(); D().render(); D().toast("Caja cerrada · diferencia efectivo " + soles(Math.round(Number(r && r.cash_difference || 0) * 100))); return;
+      const AU = window.DL_CLOSE_AUTH; let r;
+      if (AU && AU.active() && AU.wants(form)) { r = await AU.close(ses, counted, note, fl, form); if (!r || r.ok === false) return; }
+      else {
+        try { r = await api.closeCash(ses.id, counted, note, fl); }
+        catch (e) { if (AU && AU.active() && /PIN del encargado/i.test(String(e && e.message))) { AU.require(); D().render(); D().toast("Esta tienda pide el PIN del encargado para cerrar.", "error"); return; } throw e; }
+      }
+      cj.expAdded = null;
+      if (window.DL_CLOSE_DONE) window.DL_CLOSE_DONE(r, { diff, counted, float: fl });
+      cj.authBy = null; await D().reload(); D().render(); D().toast("Caja cerrada · diferencia efectivo " + soles(Math.round(Number(r && (r.cash_difference != null ? r.cash_difference : r.difference) || 0) * 100))); return;
     }
     if (gastos) await D().Store.insert("expenses", { id: D().nid("exp"), store_id: ses.store_id, category: "Caja", amount_cents: gastos, note: "Gastos de caja", expense_date: D().localDay(new Date()), created_by: me().full_name });
     await D().Store.update("cash_sessions", ses.id, { closed_by: cj.authBy && !canCuadre(me()) ? cj.authBy.id : me().id, status: "CLOSED", closing_cents: counted.CASH, closed_at: new Date().toISOString(), expected_json: exp, counted_json: counted, difference_cents: diff, float_left_cents: fl, delivered_cents: counted.CASH - fl, note: form.elements.note.value.trim() || null });
@@ -744,6 +760,7 @@
     } catch { }
   }
   window.DL_BEEP = beep;
+  window.DL_openScanner = (sink, title) => { scan.sink = sink || null; const pr = openQr(); const h = document.querySelector("#scan-ov .qr-head b"); if (h && title) h.textContent = title; return pr; }; // v32: lector reutilizable
   function scanMsg(text, ok) {
     const m = document.getElementById("scan-msg"); if (!m) return;
     m.hidden = false; m.className = "scan-msg " + (ok ? "ok" : "bad"); m.innerHTML = (ok ? IC("check", 16) + " " : "") + esc(text);
@@ -761,6 +778,7 @@
       if (r && r.is_active === false) { scanMsg("Esa prenda está desactivada: " + code, false); return; }
       const p = r ? D().byId("products", String(r.variant_id)) : local();
       if (!p) { beep(false); scanMsg("Código no encontrado: " + code, false); return; }
+      if (scan.sink) { const m = scan.sink(p, r, code); beep(m !== false); scanMsg(typeof m === "string" ? m : "Listo: " + p.name, m !== false); return; }
       addScanned(p, r);
     });
   }
@@ -871,6 +889,7 @@
     if (scan.reader) { try { scan.reader.reset(); } catch { } scan.reader = null; }
     if (scan.stream) { scan.stream.getTracks().forEach((t) => t.stop()); scan.stream = null; }
     const ov = document.getElementById("scan-ov"); if (ov) ov.remove();
+    if (scan.sink && !silent) { scan.sink = null; D().render(); return; }
     if (!silent && scan.added.length) { scan.added = []; D().render(); }
   }
 
@@ -1048,7 +1067,7 @@
     "lay-pay": (el) => layPay(el.dataset.id),
     "lay-done": (el) => layDone(el.dataset.id),
     "lay-cancel": (el) => layCancel(el.dataset.id),
-    "cj-qr": () => openQr(),
+    "cj-qr": () => { scan.sink = null; return openQr(); },
     "cj-counter": (el) => { const row = el.closest(".counter-row"); const on = !row.classList.contains("collapsed"); row.classList.toggle("collapsed", on); el.setAttribute("aria-expanded", String(!on)); try { localStorage.setItem("dl-counter-collapsed", on ? "1" : "0"); } catch { } },
     "cj-cust-find": () => custLookup(),
     "cj-wa-receipt": (el) => waReceipt(el.dataset.id),

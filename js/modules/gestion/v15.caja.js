@@ -15,7 +15,7 @@
     const dif = l ? Number(l.difference || 0) : 0; const res = o ? "ABIERTA" : l ? l.result : "";
     const exp = o && o.expected ? Object.entries(o.expected).filter(([, v]) => Number(v)).map(([k, v]) => `${esc(k.charAt(0) + k.slice(1).toLowerCase())} ${money(v)}`).join(" · ") : "";
     const mins = Number((o && o.minutes_open) || 0);
-    return `<article class="cash-card ${o ? "open" : "closed"} ${!o && (res === "FALTANTE" || res === "SOBRANTE") ? "diff" : ""} ${!o && res === "SIN_CONTEO" ? "nocount" : ""}">
+    return `<article class="cash-card ${o ? "open" : "closed"} ${!o && (res === "FALTANTE" || res === "SOBRANTE" || (l && l.has_discrepancy)) ? "diff has-diff" : ""} ${!o && res === "SIN_CONTEO" ? "nocount" : ""}">
       <div class="row"><b class="grow">${esc(r.name)}</b><span class="badge ${o ? "ok" : ""}">${o ? "Abierta" : "Cerrada"}</span></div>
       ${o ? `<p class="tiny">${esc(o.opened_by_name || "")} · desde ${esc(fdate(o.opened_at, true))} (${Math.floor(mins / 60)} h ${mins % 60} min)</p>
         <p>Fondo <b>${money(o.opening_amount)}</b></p>${exp ? `<p class="tiny">Esperado: ${exp}</p>` : ""}
@@ -31,9 +31,12 @@
     const list = CX.data || [];
     return `<div class="stack"><div class="row"><h3 class="grow" style="margin:0">Cajas de todas las tiendas</h3><button class="btn small ghost" type="button" data-act="cx-refresh">Actualizar</button></div>
       ${CX.err ? `<p class="alert-text">${esc(CX.err)}</p>` : ""}${!CX.loaded ? `<p class="muted">Cargando…</p>` : ""}
+      ${(() => { const bad = []; list.forEach((s) => (s.registers || []).forEach((r) => { const l = r.last_closed; const res = l && l.result; const dif = l ? Number(l.difference || 0) : 0; if (l && !r.open_session && (res === "FALTANTE" || res === "SOBRANTE" || dif || l.has_discrepancy)) bad.push(`${s.store_name} · ${r.name}: ${dif < 0 ? "falta" : "sobra"} ${plain(Math.abs(dif))}`); })); return bad.length ? `<div class="diff-banner" role="alert"><span>Descuadre en ${bad.length === 1 ? "1 caja" : bad.length + " cajas"}: ${bad.map(esc).join(" · ")}</span></div>` : ""; })()}
       ${list.map((s) => `<section class="stack cash-store"><div class="row" style="flex-wrap:wrap"><b class="grow" style="flex-basis:200px">${esc(s.store_name)}</b><span class="tiny">Horario ${esc(hhmm(s.opens_at) || "—")}–${esc(hhmm(s.closes_at) || "—")}${s.auto_close ? " · cierre automático" : ""}</span>${isAdmin() ? `<button class="link-btn tiny" type="button" data-act="cx-sched" data-id="${esc(s.store_id)}" data-o="${esc(hhmm(s.opens_at))}" data-c="${esc(hhmm(s.closes_at))}" data-a="${s.auto_close ? 1 : 0}">Cambiar horario</button>` : ""}</div>
+        ${window.DL_CASH_STORE_EXTRA ? window.DL_CASH_STORE_EXTRA(s) : ""}
         <div class="cash-grid">${(s.registers || []).filter((r) => r.is_active !== false).map((r) => cashCard(s, r)).join("") || `<p class="tiny muted">Sin cajas registradas.</p>`}</div></section>`).join("")}</div>`;
   }
+  window.DL_CASH_OVERVIEW = () => CX.data || [];
   const tabs = window.DL_ADMIN_TABS = window.DL_ADMIN_TABS || [];
   const old = tabs.find((x) => x.id === "cajas"); const prevCajas = old && old.render;
   const cajas = () => renderCashGrid() + (prevCajas ? `<details class="panel" style="margin-top:14px"><summary>Historial y aprobación de cierres</summary>${prevCajas()}</details>` : "");
@@ -74,7 +77,7 @@
   function renderLegal() {
     if (!isAdmin()) return `<p class="muted">Solo el administrador cambia estos textos.</p>`;
     const db = (S().v2 && S().v2.storefront && S().v2.storefront._db) || {};
-    return `<form class="panel stack" data-form="leg-save" style="max-width:760px"><h3>Pie de página y textos legales</h3><p class="tiny">Si un texto está vacío, la web muestra el texto provisional. Separa párrafos con una línea en blanco; empieza una línea con «- » para viñetas.</p>
+    return `<form novalidate class="panel stack" data-form="leg-save" style="max-width:760px"><h3>Pie de página y textos legales</h3><p class="tiny">Si un texto está vacío, la web muestra el texto provisional. Separa párrafos con una línea en blanco; empieza una línea con «- » para viñetas.</p>
       ${LEG.map(([k, l, area]) => `<label>${l}${area ? `<textarea name="${k}" rows="5" maxlength="20000">${esc(db[k] || "")}</textarea>` : `<input name="${k}" maxlength="200" value="${esc(db[k] || "")}" ${k === "ruc" ? 'inputmode="numeric"' : ""}>`}</label>`).join("")}
       <button class="btn" type="submit">Guardar textos</button></form>`;
   }

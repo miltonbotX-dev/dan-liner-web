@@ -46,12 +46,12 @@
         <span class="meta" style="display:block">${esc([c.username ? "@" + c.username : "", c.email].filter(Boolean).join(" · ") || "Sin cuenta web")}</span></span><span class="num">${activity(t.last_purchase_at)}</span></div>
       <div class="stats"><article class="stat"><span class="tiny">Compras</span><b><span class="num">${t.purchases}</span></b></article><article class="stat"><span class="tiny">Total gastado</span><b>${D().moneyHtml(t.spent_cents)}</b></article>
         <article class="stat"><span class="tiny">Ticket promedio</span><b>${D().moneyHtml(t.avg_cents)}</b></article><article class="stat"><span class="tiny">Última compra</span><b style="font-size:16px">${esc(fecha(t.last_purchase_at))}</b></article></div>
-      ${c.id ? `<form class="panel stack" data-form="cl-save" style="margin:12px 0"><h3>Datos del cliente</h3>
+      ${c.id ? `<form novalidate class="panel stack" data-form="cl-save" style="margin:12px 0"><h3>Datos del cliente</h3>
         <div class="two"><label>Nombre o razón social<input name="name" value="${esc(c.name)}" required ${can ? "" : "disabled"}></label><label>WhatsApp / celular<input name="phone" type="tel" inputmode="tel" value="${esc(c.phone)}" ${can ? "" : "disabled"}></label></div>
         <div class="two"><label>Documento<select name="document_type" ${can ? "" : "disabled"}>${["DNI", "RUC", "CE"].map((k) => `<option ${c.document_type === k ? "selected" : ""}>${k}</option>`).join("")}</select></label><label>Número<input name="document_number" inputmode="numeric" value="${esc(c.document_number)}" ${can ? "" : "disabled"}></label></div>
         <div class="two"><label>Correo<input name="email" type="email" value="${esc(c.email)}" ${can ? "" : "disabled"}></label><label>Dirección<input name="address" value="${esc(c.address)}" ${can ? "" : "disabled"}></label></div>
         ${can ? `<button class="btn" type="button" data-act="cl-save">Guardar</button>` : ""}${d.special_prices ? `<p class="tiny">${d.special_prices} precio(s) especial(es) en Mayoristas.</p>` : ""}</form>`
-      : `<form class="panel stack" style="margin:12px 0"><h3>Enlazar DNI/RUC</h3><p class="tiny">Esta cuenta web aún no tiene ficha de cliente. Al enlazar su documento, sus compras en tienda aparecen aquí.</p>
+      : `<form novalidate class="panel stack" style="margin:12px 0"><h3>Enlazar DNI/RUC</h3><p class="tiny">Esta cuenta web aún no tiene ficha de cliente. Al enlazar su documento, sus compras en tienda aparecen aquí.</p>
         <div class="two"><label>DNI o RUC<input id="cl-link-doc" inputmode="numeric" maxlength="11"></label><label>Nombre<input id="cl-link-name" value="${esc(c.name)}"></label></div>
         <button class="btn" type="button" data-act="cl-link">Enlazar</button></form>`}
       ${window.DL_CL_EXT && c.id ? window.DL_CL_EXT.detailHtml(c, r) : ""}

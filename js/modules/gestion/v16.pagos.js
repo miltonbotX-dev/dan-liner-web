@@ -13,7 +13,7 @@
     const esc = V().esc;
     return `<h3 style="margin:0">Yape / Plin por tienda</h3>
       <p class="tiny muted" style="margin:0">El cliente ve el número de la tienda donde recoge; si es envío, el de la tienda principal. Celular de 9 dígitos que empieza con 9. Deja vacío para quitarlo.</p>
-      ${rows().map((s) => `<form class="stack pay-numbers-row" data-store="${esc(s.id)}" onsubmit="return false">
+      ${rows().map((s) => `<form novalidate class="stack pay-numbers-row" data-store="${esc(s.id)}" onsubmit="return false">
         <b>${esc(s.name)}${s.is_main ? ' <span class="tiny">· principal</span>' : ""}</b>
         <div class="two"><label>Yape<input name="yape" type="tel" inputmode="numeric" maxlength="15" placeholder="987654321" value="${esc(s.yape_number || "")}"></label><label>Titular Yape<input name="yape_holder" maxlength="80" value="${esc(s.yape_holder || "")}"></label></div>
         <div class="two"><label>Plin<input name="plin" type="tel" inputmode="numeric" maxlength="15" placeholder="987654321" value="${esc(s.plin_number || "")}"></label><label>Titular Plin<input name="plin_holder" maxlength="80" value="${esc(s.plin_holder || "")}"></label></div>

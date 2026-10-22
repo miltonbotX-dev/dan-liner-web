@@ -86,7 +86,7 @@
       const all = (D().state.data.products || []).filter((p) => !p.deleted_at && p.is_active !== false);
       const groups = D().productGroups(all); const q = PA.q.toLowerCase();
       const shown = groups.filter((g) => { const v = g.first || g.vars[0]; return f.items[String(v.product_id)] || !q || `${v.name} ${v.sku || ""} ${v.color || ""}`.toLowerCase().includes(q); }).slice(0, 40);
-      form = `<form class="panel stack" data-form="pa-save"><h3>${f.id ? "Editar" : "Nueva"} promoción</h3>
+      form = `<form novalidate class="panel stack" data-form="pa-save"><h3>${f.id ? "Editar" : "Nueva"} promoción</h3>
         <div class="ship-choice"><label><input type="radio" name="kind" value="DESCUENTO" ${f.kind !== "COMBO" ? "checked" : ""}><b>Descuento</b><span class="tiny">Baja el precio de las prendas elegidas.</span></label><label><input type="radio" name="kind" value="COMBO" ${f.kind === "COMBO" ? "checked" : ""}><b>Combo</b><span class="tiny">2 o más prendas a un precio.</span></label></div>
         <label>Nombre<input name="name" required maxlength="80" value="${esc(f.name || "")}" placeholder="Ej. Semana del terno"></label>
         <label>Descripción (opcional)<input name="description" maxlength="200" value="${esc(f.description || "")}"></label>

@@ -136,7 +136,7 @@
     const store = (D().state.pubStores || []).find((s) => String(s.id) === String(d.store_id)); d.store_name = store ? store.name : "";
     const need = [["nombre", "tu nombre completo"], ["doc_numero", "tu número de documento"], ["domicilio", "tu domicilio"], ["bien_descripcion", "la descripción del producto o servicio"], ["detalle", "el detalle"], ["pedido", "lo que solicitas"]].find(([k]) => !d[k]);
     lb.err = need ? "Completa " + need[1] + "." : d.doc_tipo === "DNI" && !/^\d{8}$/.test(d.doc_numero) ? "El DNI tiene 8 dígitos." : d.doc_tipo === "RUC" && !/^\d{11}$/.test(d.doc_numero) ? "El RUC tiene 11 dígitos." : !d.telefono && !d.email ? "Déjanos un teléfono o un correo para responderte." : d.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email) ? "Revisa tu correo." : d.menor_edad && !d.apoderado ? "Indica el nombre de tu padre, madre o apoderado." : d.monto && !/^\d+(\.\d{1,2})?$/.test(d.monto) ? "Monto inválido (ej. 225.00)." : f.get("acepto") !== "on" ? "Marca la declaración para continuar." : "";
-    if (lb.err) { D().render(); return; }
+    if (lb.err) { D().render(); const fld = need ? need[0] : /^El (DNI|RUC)/.test(lb.err) ? "doc_numero" : /teléfono o un correo/.test(lb.err) ? "telefono" : /correo/.test(lb.err) ? "email" : /apoderado/.test(lb.err) ? "apoderado" : /Monto/.test(lb.err) ? "monto" : /declaración/.test(lb.err) ? "acepto" : null; if (fld && window.DL_FIELD_ERR) window.DL_FIELD_ERR(document.querySelector(".lr-form"), fld, lb.err); return; }
     lb.busy = true; D().render();
     try { const r = await saveReclamo(d); lb.sent = Object.assign({ data: d }, r); lb.err = ""; }
     catch (e) { lb.err = String((e && e.message) || "No se pudo enviar. Intenta de nuevo."); }

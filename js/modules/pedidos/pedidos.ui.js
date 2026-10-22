@@ -267,7 +267,7 @@
     "co-pago": async (form) => { readForm(form); await place(); },
   });
   window.DL_ACTIONS = Object.assign(window.DL_ACTIONS || {}, {
-    "co-copy": async (el) => { const v = el.dataset.v || ""; try { await navigator.clipboard.writeText(v); D().toast("Número copiado: " + v); } catch (e) { window.prompt("Copia el número:", v); } },
+    "co-copy": async (el) => { const v = el.dataset.v || ""; try { await navigator.clipboard.writeText(v); D().toast("Número copiado: " + v); } catch (e) { await window.dlgPrompt("Mantén presionado el número para copiarlo:", v, { title: "Copiar número", ok: "Listo", cancel: "Cerrar" }); } },
     "co-step": (el) => { const c = co(); c.err = ""; const f = document.querySelector(".co-form"); if (f) readForm(f); if (el.dataset.id === "carrito") { D().ui.step = "carrito"; D().render(); } else { D().ui.step = el.dataset.id; D().render(); } window.scrollTo(0, 0); },
     "mo-track": async (el) => { const id = el.dataset.id; my.open[id] = !my.open[id]; D().render(); if (my.open[id] && !my.hist[id]) { try { my.hist[id] = { rows: (await api().orderHistory(id)) || [] }; } catch (e) { my.hist[id] = { err: human(e) }; } D().render(); } },
     "mo-cancel": async (el) => {
