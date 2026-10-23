@@ -43,7 +43,7 @@
     const can = D().allow(["SUPERVISOR", "CAJERO", "VENDEDOR"]);
     return `<button class="btn ghost small" type="button" data-act="cl-back">← Clientes</button>
       <div class="cust-row" style="margin:12px 0"><span class="avatar">${esc(initials(c.name))}</span><span class="grow" style="text-align:left"><b>${esc(c.name)}</b> ${c.is_wholesale ? `<span class="tag-mayorista">Mayorista${c.wholesale_mode === "normal" ? " · precio normal" : ""}</span>` : ""}
-        <span class="meta" style="display:block">${esc([c.username ? "@" + c.username : "", c.email].filter(Boolean).join(" · ") || "Sin cuenta web")}</span></span><span class="num">${activity(t.last_purchase_at)}</span></div>
+        <span class="meta" style="display:block">${esc([c.username ? "@" + c.username : "", c.email].filter(Boolean).join(" · ") || "Sin cuenta web")}</span></span><span class="num">${activity(t.last_purchase_at)}</span>${window.DL_PW_BTN ? window.DL_PW_BTN((r && r.user_id) || c.user_id, c.email, c.name) : ""}</div>
       <div class="stats"><article class="stat"><span class="tiny">Compras</span><b><span class="num">${t.purchases}</span></b></article><article class="stat"><span class="tiny">Total gastado</span><b>${D().moneyHtml(t.spent_cents)}</b></article>
         <article class="stat"><span class="tiny">Ticket promedio</span><b>${D().moneyHtml(t.avg_cents)}</b></article><article class="stat"><span class="tiny">Última compra</span><b style="font-size:16px">${esc(fecha(t.last_purchase_at))}</b></article></div>
       ${c.id ? `<form novalidate class="panel stack" data-form="cl-save" style="margin:12px 0"><h3>Datos del cliente</h3>

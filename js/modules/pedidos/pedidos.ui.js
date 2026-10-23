@@ -84,6 +84,39 @@
       <div class="row"><button class="btn ghost" type="button" data-act="co-step" data-id="carrito">Atrás</button><button class="btn" type="submit">Continuar al pago</button></div>
     </form>`;
   }
+  // v33 (BD v18): comprobante del pedido web → set_order_billing (boleta / ticket / factura con RUC + razón social + dirección fiscal)
+  const RECEIPTS = [["BOLETA", "Boleta"], ["FACTURA", "Factura"], ["TICKET", "Ticket"]];
+  function billHtml(b, scope) {
+    const t = b.receipt || "BOLETA";
+    return `<fieldset class="stack bill-box" ${scope ? `data-bill="${esc(scope)}"` : ""}><legend class="tiny">Comprobante</legend>
+      <div class="doc-choice pay-choice" role="radiogroup" aria-label="Tipo de comprobante">${RECEIPTS.map(([k, l]) => `<label class="chip ${t === k ? "on" : ""}"><input type="radio" name="receipt" value="${k}" ${t === k ? "checked" : ""}> ${l}</label>`).join("")}</div>
+      ${t === "FACTURA" ? `<label>RUC<input name="bill_doc" inputmode="numeric" maxlength="11" placeholder="11 dígitos" value="${esc(b.bill_doc || "")}"></label>
+        <label>Razón social<input name="bill_name" maxlength="200" value="${esc(b.bill_name || "")}"></label>
+        <label>Dirección fiscal<input name="bill_address" maxlength="300" value="${esc(b.bill_address || "")}"></label>`
+        : t === "BOLETA" ? `<label>DNI (opcional)<input name="bill_doc" inputmode="numeric" maxlength="8" placeholder="8 dígitos" value="${esc(b.bill_doc || "")}"></label>` : `<p class="tiny muted">Ticket simple, sin datos del cliente.</p>`}
+    </fieldset>`;
+  }
+  function billErr(b) {
+    const t = b.receipt || "BOLETA"; const d = String(b.bill_doc || "").replace(/\D/g, "");
+    if (t === "FACTURA") {
+      if (!/^(10|15|17|20)\d{9}$/.test(d)) return "Para factura indica un RUC válido (11 dígitos).";
+      if (String(b.bill_name || "").trim().length < 3) return "Para factura indica la razón social.";
+      if (String(b.bill_address || "").trim().length < 5) return "Para factura indica la dirección fiscal.";
+    } else if (t === "BOLETA" && d && !/^\d{8}$/.test(d)) return "El DNI debe tener 8 dígitos.";
+    return "";
+  }
+  const billArgs = (id, b) => { const t = b.receipt || "BOLETA"; return { p_order_id: Number(id), p_receipt_type: t, p_doc_number: t === "TICKET" ? null : String(b.bill_doc || "").replace(/\D/g, "") || null, p_name: t === "FACTURA" ? String(b.bill_name || "").trim() : null, p_address: t === "FACTURA" ? String(b.bill_address || "").trim() : null }; };
+  function readBill(id) {
+    const box = document.querySelector(`[data-bill="${CSS.escape(String(id))}"]`); const b = my.bill[id] || (my.bill[id] = {});
+    if (box) box.querySelectorAll("input").forEach((i) => { if (i.type === "radio") { if (i.checked) b.receipt = i.value; } else b[i.name] = i.value.trim(); });
+    return b;
+  }
+  function payData(c) {
+    const pubs = D().state.pubStores || []; const shop = pubs.find((s) => s.id === String(c.storeId));
+    const st = (c.delivery === "ENVIO" ? null : shop) || pubs.find((s) => s.is_main) || pubs[0] || {}; const pl = c.payment === "PLIN";
+    return { has: Boolean((pl ? st.plin_number || st.plin_qr_url || sf().plin_number : st.yape_number || st.yape_qr_url || sf().yape_number)) };
+  }
+  const plainSoles = (cents) => D().soles(cents).replace(/<[^>]+>/g, "");
   function renderPago() {
     const c = co(); const qr = isQr(c.payment);
     const shop = (D().state.pubStores || []).find((s) => s.id === String(c.storeId));
@@ -94,17 +127,24 @@
     const num = (isPlin ? payStore.plin_number : payStore.yape_number) || (isPlin ? sf().plin_number : sf().yape_number) || "";
     const holder = (isPlin ? payStore.plin_holder : payStore.yape_holder) || "";
     const numFmt = num.replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
+    const qrUrl = (isPlin ? payStore.plin_qr_url : payStore.yape_qr_url) || "";
+    const amt = plainSoles(D().cartSum());
     const waOk = Boolean(waNum(sf().contact_whatsapp));
     return `${stepsBar("pago")}<form class="stack co-form" data-form="co-pago" novalidate>
       <p class="tiny">${c.delivery === "ENVIO" ? "Envío a: " + esc([c.direccion, c.distrito, c.provincia, c.departamento].filter(Boolean).join(", ")) : "Recojo en: " + esc(shop ? shop.name : "")} · ${esc(c.phone || "")} · <button class="link-btn" type="button" data-act="co-step" data-id="entrega">Cambiar</button></p>
       <div class="pay-choice" role="radiogroup" aria-label="Forma de pago">
         ${["CONTRA_ENTREGA", "YAPE", "PLIN"].map((m) => `<label class="chip ${c.payment === m ? "on" : ""}"><input type="radio" name="payment" value="${m}" ${c.payment === m ? "checked" : ""}> ${m === "CONTRA_ENTREGA" ? (c.delivery === "ENVIO" ? "Contra entrega" : "Efectivo en tienda") : PAY[m]}</label>`).join("")}
       </div>
-      ${qr ? `<div class="panel stack co-proof">${num ? `<div class="pay-number"><span class="tiny">${esc(PAY[c.payment])}${payStore.name ? " · " + esc(payStore.name) : ""}</span><b class="num">${esc(numFmt)}</b>${holder ? `<span class="tiny">Titular: ${esc(holder)}</span>` : ""}<button class="btn ghost small" type="button" data-act="co-copy" data-v="${esc(num)}">Copiar número</button></div>` : ""}
-        <p class="tiny">${num ? `Paga el total con ${PAY[c.payment]} a este número y sube la captura.` : `Paga con ${PAY[c.payment]} y sube la captura. Si no tienes el número, pídelo por WhatsApp.`} Tu pedido queda apartado mientras confirmamos el pago.</p>
+      ${qr ? `<div class="panel stack co-proof">${num || qrUrl ? `<div class="pay-qr ${isPlin ? "plin" : "yape"}">${qrUrl ? `<img alt="QR de ${esc(PAY[c.payment])}${payStore.name ? " · " + esc(payStore.name) : ""}" width="150" height="150" loading="lazy" src="${esc(D().safeSrc(qrUrl))}">` : ""}
+          <div class="stack" style="gap:6px"><span><span class="brand-tag">${esc(PAY[c.payment])}</span>${payStore.name ? ` <span class="tiny">${esc(payStore.name)}</span>` : ""}</span><span class="amt">${esc(amt)}</span>
+            ${num ? `<div class="pay-number"><b class="num">${esc(numFmt)}</b>${holder ? `<span class="tiny">Titular: ${esc(holder)}</span>` : ""}<button class="btn ghost small" type="button" data-act="co-copy" data-v="${esc(num)}">Copiar número</button></div>` : ""}
+            <ol><li>${qrUrl ? "Escanea el QR" : "Usa el número"} desde ${esc(PAY[c.payment])}.</li><li>Paga exactamente ${esc(amt)}.</li><li>Sube la captura aquí.</li></ol></div></div>
+          <p class="tiny">Tu pedido queda apartado mientras confirmamos el pago.</p>`
+          : `<p class="pay-wa">Te enviaremos los datos de pago por WhatsApp.</p><p class="tiny muted">Confirma tu pedido; si ya pagaste, puedes adjuntar la captura (opcional).</p>`}
         ${c.proof ? `<img class="proof-preview" alt="Captura del pago" src="${esc(c.proof)}" width="120" height="160">` : ""}
         <label class="btn ghost">${c.proof ? "Cambiar captura" : "Subir captura del pago"}<input type="file" name="proof" accept="image/*" hidden></label></div>`
         : `<p class="tiny">${c.delivery === "ENVIO" ? "Pagas al recibir tu pedido." : "Pagas en la tienda al recoger."}</p>`}
+      ${billHtml(c)}
       ${c.err ? `<p class="alert-text" role="alert">${esc(c.err)}</p>` : ""}
       ${itemsSummary()}
       <div class="row"><button class="btn ghost" type="button" data-act="co-step" data-id="entrega">Atrás</button><button class="btn" type="submit" ${c.placing ? "disabled" : ""}>${c.placing ? "Enviando…" : qr ? "Apartar pedido" : "Confirmar pedido"}</button></div>
@@ -133,7 +173,7 @@
   }
   function readForm(form) {
     const c = co(); const f = new FormData(form);
-    ["delivery", "storeId", "departamento", "provincia", "distrito", "direccion", "referencia", "phone", "nota", "payment"].forEach((k) => { if (f.has(k)) c[k] = String(f.get(k) || "").trim(); });
+    ["delivery", "storeId", "departamento", "provincia", "distrito", "direccion", "referencia", "phone", "nota", "payment", "receipt", "bill_doc", "bill_name", "bill_address"].forEach((k) => { if (f.has(k)) c[k] = String(f.get(k) || "").trim(); });
     return c;
   }
   function validEntrega(c) {
@@ -149,7 +189,8 @@
     if (!lines.length) throw new Error("Tu carrito está vacío");
     const e1 = validEntrega(c); if (e1) { c.err = e1; D().ui.step = "entrega"; D().render(); return; }
     if (!PAY[c.payment]) { c.err = "Elige cómo pagarás."; D().render(); return; }
-    if (isQr(c.payment) && !c.proof) { c.err = `Sube la captura de tu ${PAY[c.payment]} para apartar el pedido, o elige otra forma de pago.`; D().render(); return; }
+    if (isQr(c.payment) && !c.proof && payData(c).has) { c.err = `Sube la captura de tu ${PAY[c.payment]} para apartar el pedido, o elige otra forma de pago.`; D().render(); return; }
+    const be = billErr(c); if (be) { c.err = be; D().render(); return; }
     const geoRow = c.delivery === "ENVIO" && geo.rows ? geo.rows.find((r) => r.departamento === c.departamento && r.provincia === c.provincia && r.distrito === c.distrito) : null;
     c.err = ""; c.placing = true; D().render();
     try {
@@ -157,9 +198,13 @@
         storeId: c.delivery === "RECOJO" ? c.storeId : null, ubigeo: geoRow ? geoRow.code : null, departamento: c.departamento, provincia: c.provincia, distrito: c.distrito,
         direccion: c.delivery === "ENVIO" ? c.direccion : null, referencia: c.delivery === "ENVIO" ? c.referencia : null, nota: c.nota, phone: D().normPhone(c.phone) });
       const done = Object.assign({ payment_method: c.payment }, r);
-      if (isQr(c.payment)) {
+      if ((c.receipt || "BOLETA") !== "BOLETA" || String(c.bill_doc || "").trim()) {
+        try { await D().Store.rpc("set_order_billing", billArgs(r.id, c)); }
+        catch (err) { done.warn = (done.warn ? done.warn + " " : "") + "No pudimos guardar los datos del comprobante (" + human(err) + "). Puedes corregirlos en Mis pedidos."; }
+      }
+      if (isQr(c.payment) && c.proof) {
         try { const path = await api().uploadOrderProof(c.proof, r.id); const a = await api().attachOrderProof(r.id, path); done.status = a.status; }
-        catch (err) { done.warn = "Tu pedido quedó registrado, pero no pudimos subir la captura (" + human(err) + "). Envíala por WhatsApp con tu código " + (r.public_code || "") + "."; }
+        catch (err) { done.warn = (done.warn ? done.warn + " " : "") + "Tu pedido quedó registrado, pero no pudimos subir la captura (" + human(err) + "). Envíala por WhatsApp con tu código " + (r.public_code || "") + "."; }
       }
       D().ui.cart = []; D().saveCart(); D().ui.coDone = done; D().ui.step = "listo"; D().ui.co = { delivery: c.delivery, payment: "CONTRA_ENTREGA", storeId: c.storeId, phone: c.phone };
       my.loaded = false; await D().reload();
@@ -168,7 +213,9 @@
   }
 
   // ================= Mis pedidos =================
-  const my = { rows: [], loaded: false, loading: false, err: "", open: {}, hist: {}, uid: null };
+  const my = { rows: [], loaded: false, loading: false, err: "", open: {}, hist: {}, uid: null, bill: {} };
+  const RLABEL = { BOLETA: "Boleta", FACTURA: "Factura", TICKET: "Ticket" };
+  const billLine = (o) => { const t = o.receipt_type || "BOLETA"; return `${RLABEL[t] || t}${o.billing_doc_number ? " · " + (t === "FACTURA" ? "RUC " : "DNI ") + o.billing_doc_number : ""}${o.billing_name ? " · " + o.billing_name : ""}`; };
   function loadMine() {
     if (my.loading) return; my.loading = true;
     api().myOrders(50, 0).then((r) => { my.rows = r || []; my.err = ""; }).catch((e) => { my.err = human(e); }).finally(() => { my.loading = false; my.loaded = true; D().render(); });
@@ -195,6 +242,8 @@
       <div class="stack">${(o.items || []).map((i) => `<div class="row tiny"><span class="grow">${esc(i.product_name)}${i.variant_label ? " · " + esc(i.variant_label) : ""} × ${esc(i.quantity)}</span><span>${money(i.line_total)}</span></div>`).join("")}</div>
       <div class="row total-row"><span>Total</span><b>${money(o.total)}</b></div>
       ${o.status === "RECHAZADO" && o.cancel_reason ? `<p class="alert-text">Pago observado: ${esc(o.cancel_reason)}</p>` : o.status === "CANCELADO" && o.cancel_reason ? `<p class="tiny muted">Motivo: ${esc(o.cancel_reason)}</p>` : ""}
+      <p class="tiny">Comprobante: ${esc(billLine(o))}${o.can_edit_billing && !my.bill[o.id] ? ` · <button class="link-btn" type="button" data-act="mo-bill" data-id="${esc(o.id)}">Cambiar</button>` : ""}</p>
+      ${my.bill[o.id] ? `<div class="stack" data-bill-wrap="${esc(o.id)}">${billHtml(my.bill[o.id], o.id)}${my.bill[o.id].err ? `<p class="alert-text" role="alert">${esc(my.bill[o.id].err)}</p>` : ""}<div class="row" style="justify-content:flex-start"><button class="btn small" type="button" data-act="mo-bill-save" data-id="${esc(o.id)}">Guardar comprobante</button><button class="btn ghost small" type="button" data-act="mo-bill-x" data-id="${esc(o.id)}">Cancelar</button></div></div>` : ""}
       ${my.open[o.id] ? trackHtml(o) : ""}
       <div class="row" style="justify-content:flex-start;flex-wrap:wrap">
         <button class="btn ghost small" type="button" data-act="mo-track" data-id="${esc(o.id)}" aria-expanded="${!!my.open[o.id]}">${my.open[o.id] ? "Ocultar seguimiento" : "Ver seguimiento"}</button>
@@ -238,8 +287,10 @@
       <p class="tiny">${esc(where)}</p>
       ${items.length ? `<div class="stack">${items.map((i) => `<div class="row tiny"><span class="grow">${esc(i.name)}${i.label ? " · " + esc(i.label) : ""} × ${i.qty}</span><span>${D().soles(i.line_cents)}</span></div>`).join("")}</div>` : `<p class="tiny">${esc(o.units)} prenda(s)</p>`}
       ${o.notes ? `<p class="tiny">Nota: ${esc(o.notes)}</p>` : ""}
+      <p class="tiny">Comprobante: <b>${esc(billLine(o))}</b>${o.billing_address ? " · " + esc(o.billing_address) : ""}${o.sale_id ? " · venta vinculada" : ""}</p>
       <div class="row total-row"><span>${esc(PAY[o.payment_method] || o.payment_method)}</span><b>${money(o.total)}</b></div>
       ${isQr(o.payment_method) ? (o.proof_path ? `<div class="stack">${q.proofs[o.order_id] ? `<a href="${esc(q.proofs[o.order_id])}" target="_blank" rel="noopener"><img class="proof-img" alt="Comprobante de pago" src="${esc(q.proofs[o.order_id])}" width="160" height="220"></a>` : `<button class="btn ghost small" type="button" data-act="q-proof" data-id="${esc(o.order_id)}" data-path="${esc(o.proof_path)}">Ver comprobante</button>`}</div>` : `<p class="tiny bad">Sin comprobante todavía</p>`) : ""}
+      ${!o.sale_id && ["LISTO_PARA_RECOGER", "ENVIADO"].includes(o.status) && D().allow(["CAJERO", "SUPERVISOR"]) && items.length ? `<button class="btn small" type="button" data-act="q-caja" data-id="${esc(o.order_id)}">Cobrar en Caja</button>` : ""}
       ${next.length ? `<div class="row" style="flex-wrap:wrap;justify-content:flex-start">${next.map((s) => `<button class="btn small ${s === "CANCELADO" || s === "RECHAZADO" ? "danger ghost" : ""}" type="button" data-act="q-status" data-id="${esc(o.order_id)}" data-s="${s}">${esc(BTN[s])}</button>`).join("")}</div>` : ""}
     </article>`;
   }
@@ -275,6 +326,26 @@
       if (reason === null) return;
       await api().cancelMyOrder(el.dataset.id, reason.trim() || null); my.loaded = false; delete my.hist[el.dataset.id]; D().render(); D().toast("Pedido cancelado", "ok");
     },
+    "mo-bill": (el) => { const o = my.rows.find((x) => String(x.id) === el.dataset.id) || {}; my.bill[el.dataset.id] = { receipt: o.receipt_type || "BOLETA", bill_doc: o.billing_doc_number || "", bill_name: o.billing_name || "", bill_address: o.billing_address || "" }; D().render(); },
+    "mo-bill-x": (el) => { delete my.bill[el.dataset.id]; D().render(); },
+    "mo-bill-save": async (el) => {
+      const id = el.dataset.id; const b = readBill(id); b.err = billErr(b); if (b.err) { D().render(); return; }
+      try { await D().Store.rpc("set_order_billing", billArgs(id, b)); delete my.bill[id]; my.loaded = false; D().render(); D().toast("Comprobante actualizado", "ok"); }
+      catch (e) { b.err = human(e); D().render(); }
+    },
+    // v33: el cajero carga el pedido en Caja (prendas, comprobante y datos del cliente); al cobrar se vincula con set_order_status(p_sale_id)
+    "q-caja": (el) => {
+      const o = q.rows.find((x) => String(x.order_id) === el.dataset.id); const cj = window.DL_CJ; if (!o || !cj) return;
+      const items = ((D().state.orders || []).find((x) => String(x.id) === String(o.order_id)) || {}).items || [];
+      const lines = items.map((i) => ({ id: String(i.variant_id), qty: Number(i.qty) || 1, unit: i.unit_cents })).filter((l) => D().byId("products", l.id));
+      if (!lines.length || lines.length !== items.length) throw new Error("No encontramos todas las prendas del pedido en el catálogo de Caja.");
+      if (D().ui.storeId && String(D().ui.storeId) !== String(o.store_id)) D().toast("Ojo: el pedido es de " + (o.store_name || "otra tienda") + "; cóbralo en la caja de esa tienda.", "error");
+      const t = o.receipt_type || "BOLETA";
+      cj.cart = lines; cj.doc = t; cj.tab = "vender";
+      cj.cust = { name: (t === "FACTURA" ? o.billing_name : o.customer_name) || o.customer_name || "", doc: o.billing_doc_number || (t === "BOLETA" ? o.customer_dni || "" : ""), phone: String(o.contact_phone || "").replace(/\D/g, "").replace(/^51(?=9\d{8}$)/, ""), address: o.billing_address || "" };
+      cj.fromOrder = { id: o.order_id, code: o.public_code || "", ids: lines.map((l) => l.id) };
+      if (location.hash === "#caja") D().render(); else location.hash = "caja"; D().toast("Pedido " + (o.public_code || "") + " cargado en Caja. Elige el pago y cobra.", "ok");
+    },
     "q-filter": (el) => { q.status = el.dataset.id; D().render(); },
     "q-refresh": () => { q.loaded = false; D().render(); },
     "q-proof": async (el) => { const url = await api().proofUrl(el.dataset.path); if (!url) throw new Error("No se pudo abrir el comprobante."); q.proofs[el.dataset.id] = url; D().render(); },
@@ -296,13 +367,15 @@
         .then(() => { my.loaded = false; D().render(); D().toast("Captura enviada. Revisaremos tu pago.", "ok"); }).catch((err) => D().toast(human(err), "error"));
       return;
     }
+    const bw = t.closest && t.closest("[data-bill]");
+    if (bw && t.name === "receipt" && !t.closest(".co-form")) { const b = readBill(bw.dataset.bill); b.receipt = t.value; b.err = ""; D().render(); return; }
     const form = t.closest && t.closest(".co-form"); if (!form) return;
     const c = co();
     if (t.name === "proof" && t.files && t.files[0]) { readForm(form); (window.DL_compressProof ? window.DL_compressProof(t.files[0]) : Promise.reject(new Error("No se pudo leer la imagen"))).then((u) => { c.proof = u; c.err = ""; D().render(); }).catch((err) => { c.err = human(err); D().render(); }); return; }
-    const before = [c.delivery, c.departamento, c.provincia, c.storeId, c.payment].join("|");
+    const before = [c.delivery, c.departamento, c.provincia, c.storeId, c.payment, c.receipt].join("|");
     readForm(form);
     if (t.name === "departamento") { c.provincia = ""; c.distrito = ""; }
     if (t.name === "provincia") { c.distrito = ""; }
-    if (before !== [c.delivery, c.departamento, c.provincia, c.storeId, c.payment].join("|")) { c.err = ""; D().render(); }
+    if (before !== [c.delivery, c.departamento, c.provincia, c.storeId, c.payment, c.receipt].join("|")) { c.err = ""; D().render(); }
   });
 })();

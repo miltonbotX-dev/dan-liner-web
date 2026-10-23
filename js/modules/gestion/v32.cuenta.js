@@ -7,7 +7,18 @@
   function isManager() {
     const d = D(); const u = d.state.user; if (!u) return false;
     if (d.allow(["SUPERVISOR"])) return true; // admin incluido
-    return ((d.state.data || {}).stores || []).some((s) => s.manager_id === u.id || (s.manager_ids || []).includes(u.id));
+    if (((d.state.data || {}).stores || []).some((s) => s.manager_id === u.id || (s.manager_ids || []).includes(u.id))) return true;
+    return Q.perm === true; // v33: también quien tenga el permiso cash.approve (roles nuevos de v18)
+  }
+  const Q = { perm: null, loaded: false };
+  function loadPerm() { if (Q.loaded || !D().state.user) return; Q.loaded = true; V().rpc("has_permission", { p_code: "cash.approve" }).then((r) => { const v = r && r.data !== undefined ? r.data : r; if (v === true) { Q.perm = true; V().rerender(); } }).catch(() => {}); }
+  const LOCK = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+  function pinCard() {
+    if (!P.loaded) setTimeout(() => V().once("v17pin", () => X().call("hasMyPin", {}).catch(() => null), P), 0);
+    const has = P.data === true || !!(P.data && P.data.has_pin);
+    if (!P.loaded) return `<a class="pin-card is-wait" href="#cuenta/pin"><span class="pin-ic">${LOCK}</span><span><b>Mi PIN de cierre</b><small>Revisando…</small></span></a>`;
+    if (has) return `<a class="pin-card is-ok" href="#cuenta/pin"><span class="pin-ic">${LOCK}</span><span><b>Mi PIN de cierre ✓</b><small>Ya tienes PIN. Toca para cambiarlo.</small></span><span class="pin-go" aria-hidden="true">›</span></a>`;
+    return `<a class="pin-card is-todo" href="#cuenta/pin" role="alert"><span class="pin-ic">${LOCK}</span><span><b>Crea tu PIN de cierre</b><small>Sin PIN no puedes autorizar el cierre de caja de tu tienda.</small></span><span class="btn small">Crear PIN</span></a>`;
   }
   window.DL_CUENTA_EXTRA = () => {
     if (!X().on()) return "";
@@ -17,7 +28,8 @@
       const tags = Array.isArray(T.data) ? T.data : [];
       if (tags.length) out += `<div class="my-tags" aria-label="Tus distinciones"><span class="tiny muted">Tus distinciones</span><div class="tags">${tags.map((t) => `<span class="tag-chip" style="--c:${safeColor(t.color)}">${esc(t.name)}</span>`).join("")}</div></div>`;
     }
-    if (isManager()) out += `<a class="btn ghost small" href="#cuenta/pin" style="justify-self:start">Mi PIN de cierre de caja</a>`;
+    loadPerm();
+    if (isManager()) out += pinCard();
     return out ? `<div class="stack" style="margin:12px 0">${out}</div>` : "";
   };
   function renderPin() {

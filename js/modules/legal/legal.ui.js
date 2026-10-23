@@ -28,6 +28,10 @@
 
   // ---------- Páginas de ayuda y legales ----------
   const sizes = () => { const all = (D().visibleProducts() || []).map((p) => p.size_label).filter(Boolean); return [...new Set(all)]; };
+  // v33: siempre visible bajo la política (aunque el texto venga de la BD): defectos de fábrica según ley + Libro de Reclamaciones
+  // Una sola política (IU v33 + Grok Bot): el texto de IU ya trae fallas por WhatsApp y el Libro; aquí solo se suma la línea de ley.
+  const POLICY_LAW = `<p class="policy-law">Los defectos de fábrica se atienden conforme a ley (Código de Protección y Defensa del Consumidor, Ley N.º 29571).</p>`;
+  const POLICY_LIBRO = `<p>Si tienes un problema con tu compra también puedes registrarlo en el <a href="#legal/reclamaciones">Libro de Reclamaciones</a>.</p>`;
   const PAGES = {
     preguntas: ["Preguntas frecuentes", () => `<div class="faq">${[
       ["¿Sus ternos son de fábrica?", "Sí. Todas nuestras prendas son de fábrica, en tallas estándar y listas para llevar."],
@@ -35,7 +39,7 @@
       ["¿Puedo apartar una prenda?", "Sí. En el pedido web elige Yape o Plin y sube la captura de tu pago: tu pedido queda apartado mientras confirmamos el pago."],
       ["¿Hacen envíos?", `Sí, a todo el Perú. Mira <a href="#ayuda/envios">tiempos y costos de envío</a>.`],
       ["¿Cómo veo el estado de mi pedido?", `En <a href="#mis-pedidos">Mis pedidos</a> verás cada paso: recibido, confirmado, preparando, en camino o listo para recoger.`],
-      ["¿Puedo cambiar una prenda?", `Revisa <a href="#ayuda/cambios">cambios y devoluciones</a>.`],
+      ["¿Puedo cambiar una prenda?", `No se aceptan cambios ni devoluciones. Revisa la <a href="#ayuda/cambios">política</a> y la guía de tallas antes de comprar.`],
     ].map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("")}</div>`],
     compras: ["Guía de compras", () => `<p><b>Cómo comprar:</b> elige tu prenda y talla en la Colección, agrégala al carrito y en Tu pedido escoge recojo en tienda o envío y la forma de pago. Con Yape o Plin, sube la captura y tu pedido queda apartado mientras confirmamos el pago.</p><h3>Guía de tallas</h3><p>Nuestras prendas son de fábrica, en tallas estándar.${sizes().length ? " Tallas en la colección: <b>" + esc(sizes().join(", ")) + "</b>." : ""}</p>
       <p>Para elegir tu talla, toma estas medidas con una cinta métrica, sin apretar:</p>
@@ -46,8 +50,8 @@
       <li><b>Envío a domicilio:</b> a todo el Perú. El costo y el tiempo dependen del distrito y se confirman contigo por WhatsApp antes de despachar.</li></ul>
       <p class="tiny">Tiempos y tarifas exactas por zona: pendientes de DAN-LINER.</p>`],
     pagos: ["Formas de pago", () => `<ul><li><b>Yape y Plin:</b> paga y sube la captura al hacer tu pedido; lo confirmamos y queda apartado.</li><li><b>Efectivo en tienda:</b> pagas al recoger tu pedido.</li><li><b>Contra entrega:</b> para envíos, según disponibilidad en tu zona.</li></ul>`],
-    cambios: ["Cambios y devoluciones", () => `<p>Si la talla no te queda, puedes solicitar un cambio presentando tu comprobante y la prenda sin uso, con sus etiquetas.</p>
-      <p class="tiny">Plazo y condiciones exactas (días, prendas en oferta, envíos): pendientes de DAN-LINER.</p>
+    cambios: ["Cambios y devoluciones", () => `<p><b>No se aceptan cambios ni devoluciones.</b> Te recomendamos probarte la prenda en tienda o revisar la guía de tallas antes de comprar.</p>
+      <p>Si tu prenda llega con una falla de fábrica, escríbenos por WhatsApp dentro de las 48 horas con tu comprobante y lo solucionamos.</p>
       <p>Si tienes un problema con tu compra también puedes registrarlo en el <a href="#legal/reclamaciones">Libro de Reclamaciones</a>.</p>`],
     terminos: ["Términos y condiciones", () => `<p>Al comprar en esta web aceptas que los precios están en soles e incluyen IGV, que el stock se confirma al revisar tu pedido y que los pedidos con Yape o Plin quedan apartados hasta validar el pago.</p>
       <p>Las fotos son referenciales; colores y texturas pueden variar ligeramente según tu pantalla.</p><p class="tiny">Texto completo: pendiente de DAN-LINER.</p>`],
@@ -59,8 +63,9 @@
     const nav = `<nav class="info-nav tiny">${HELP.concat(LEGAL).map(([k, l]) => { const g = LEGAL.some(([x]) => x === k) ? "legal" : "ayuda"; const on = k === slug; return `<a href="#${g}/${k}" class="${on ? "on" : ""}" ${on ? 'aria-current="page"' : ""}>${l}</a>`; }).join(" · ")}</nav>`;
     if (!pg) return `<section class="stack info-page" style="padding:28px 0 56px;max-width:720px"><p class="kicker">${group === "legal" ? "Legales" : "Servicio al cliente"}</p><h1>${group === "legal" ? "Legales" : "Ayuda"}</h1><ul>${list.map(([k, l]) => `<li><a href="#${group}/${k}">${l}</a></li>`).join("")}</ul>${nav}</section>`;
     const t = DBKEY[slug] && db()[DBKEY[slug]];
-    const body = t && String(t).trim() ? fromDb(t) : DRAFT + pg[1]();
-    return `<section class="stack info-page" style="padding:28px 0 56px;max-width:720px"><p class="kicker">${group === "legal" ? "Legales" : "Servicio al cliente"}</p><h1>${pg[0]}</h1>${body}${nav}</section>`;
+    const rn = slug === "cambios" ? String((window.Store && Store.v2 && Store.v2.storefront && Store.v2.storefront.returns_note) || "").trim() : ""; // v33: returns_note (BD v18)
+    const body = (t && String(t).trim() ? fromDb(t) : DRAFT + pg[1]()) + (slug === "cambios" ? POLICY_LAW + (/legal\/reclamaciones/.test(String(t || "")) || !(t && String(t).trim()) ? "" : POLICY_LIBRO) : "");
+    return `<section class="stack info-page" style="padding:28px 0 56px;max-width:720px"><p class="kicker">${group === "legal" ? "Legales" : "Servicio al cliente"}</p><h1>${pg[0]}</h1>${rn ? `<p class="returns-note"><b>${esc(rn)}</b></p>` : ""}${body}${nav}</section>`;
   }
 
   // ---------- Libro de Reclamaciones (BD v15: submit_complaint, sin login) ----------

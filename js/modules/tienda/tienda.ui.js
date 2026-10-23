@@ -45,6 +45,7 @@
       a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["clientes", "#admin/customers", "Clientes"],
       a(["SUPERVISOR", "ALMACENERO"]) && ["taller", "#taller", "Taller"],
       a(["SUPERVISOR", "ALMACENERO"]) && ["admin", "#admin", "Administración"],
+      !X.isAdmin() && (X.myRoles() || []).includes("CONTADOR") && ["comprobantes", "#comprobantes", "Comprobantes"], // v33: el contador solo ve esto
     ].filter(Boolean);
   }
   function mountGestion() {
@@ -78,13 +79,15 @@
     const imgs = D().groupImages([v].concat(vars.filter((x) => x !== v))).filter(Boolean);
     const pr = D().priceOf(v); const stock = D().stockOf(v); const soldOut = stock <= 0;
     const cat = D().nameOf("categories", v.category_id);
-    const sizes = vars.map((x) => { const off = D().stockOf(x) <= 0; return `<button type="button" class="chip opt ${x.id === v.id ? "on" : ""} ${off ? "off" : ""}" data-act="pdp-size" data-id="${esc(x.id)}" ${off ? 'disabled title="Agotado"' : ""} aria-pressed="${x.id === v.id}">${esc(x.size_label || "Única")}</button>`; }).join("");
+    const sizes = vars.map((x) => { const off = D().stockOf(x) <= 0; const eta = off && window.DL_PDP18 ? window.DL_PDP18.etaOf(x) : ""; return `<button type="button" class="chip opt ${x.id === v.id ? "on" : ""} ${off ? "off" : ""}" data-act="pdp-size" data-id="${esc(x.id)}" ${off ? `disabled title="${esc(eta ? "Agotado · " + eta : "Agotado")}"` : ""} aria-pressed="${x.id === v.id}">${esc(x.size_label || "Única")}</button>`; }).join("");
     const avail = vars.filter((x) => D().stockOf(x) > 0).map((x) => x.size_label).filter(Boolean);
     const stores = (D().state.pubStores || []);
-    const stockTxt = soldOut ? "Agotado en esta talla" : stock <= 3 ? `Disponible · quedan ${stock}` : "Disponible";
+    const X = window.DL_PDP18 && window.DL_PDP18.get(v); // v33 · ficha BD v18 (get_product_detail): fotos por vista, tela, cuidado, ocasiones, guía de tallas
+    const etaTxt = soldOut && window.DL_PDP18 ? window.DL_PDP18.etaOf(v) : "";
+    const stockTxt = soldOut ? "Agotado en esta talla" + (etaTxt ? " · " + etaTxt : "") : stock <= 3 ? `Disponible · quedan ${stock}` : "Disponible";
     return `<nav class="tiny" style="padding-top:16px"><a class="link-btn" href="#coleccion">← Colección</a>${cat && cat !== "—" ? ` · ${esc(cat)}` : ""}</nav>
       <article class="pdp">
-        <div class="pdp-gallery">${galleryHtml(v, imgs)}</div>
+        <div class="pdp-gallery">${(X && X.gallery) || galleryHtml(v, imgs)}</div>
         <div class="pdp-info">
           ${cat && cat !== "—" ? `<p class="kicker">${esc(cat)}</p>` : ""}
           <h1>${esc(v.name)}</h1>
@@ -93,8 +96,8 @@
           ${vars.length ? `<div class="stack opt-group"><span class="tiny">Talla${v.size_label ? ": <b>" + esc(v.size_label) + "</b>" : ""}</span><div class="size-pick" role="group" aria-label="Talla">${sizes}</div><span class="tiny ${soldOut ? "bad" : ""}">${esc(stockTxt)}</span></div>` : ""}
           <button class="btn btn-bag full" type="button" data-act="cart-add" data-id="${esc(v.id)}" ${soldOut ? "disabled" : ""}>${D().icon("bag", 16)} ${soldOut ? "Agotado" : "Agregar talla " + esc(v.size_label || "")}</button>
           <div class="pdp-acc">
-            <details open><summary>Detalles</summary><div class="stack" style="padding-top:10px">${v.description ? `<p>${esc(v.description)}</p>` : ""}${specHtml(v)}<p class="tiny">Prenda de fábrica, lista para llevar.</p></div></details>
-            <details><summary>Medidas</summary><div class="stack" style="padding-top:10px"><p class="tiny">Tallas de fábrica${vars.length ? ": " + esc(vars.map((x) => x.size_label || "Única").join(", ")) : ""}.${avail.length ? " Con stock ahora: " + esc(avail.join(", ")) + "." : ""}</p><p class="tiny">Si dudas de tu talla, pruébatelo en tienda o escríbenos por WhatsApp con tu talla habitual. <a class="support-link" href="#info/guia-de-tallas">Guía de tallas</a></p></div></details>
+            <details open><summary>Detalles</summary><div class="stack" style="padding-top:10px">${v.description ? `<p>${esc(v.description)}</p>` : ""}${specHtml(v)}${(X && X.extra) || ""}<p class="tiny">Prenda de fábrica, lista para llevar.</p></div></details>
+            <details ${X && X.guide ? 'class="has-guide"' : ""}><summary>Medidas</summary><div class="stack" style="padding-top:10px">${(X && X.guide) || ""}<p class="tiny">Tallas de fábrica${vars.length ? ": " + esc(vars.map((x) => x.size_label || "Única").join(", ")) : ""}.${avail.length ? " Con stock ahora: " + esc(avail.join(", ")) + "." : ""}</p><p class="tiny">Si dudas de tu talla, pruébatelo en tienda o escríbenos por WhatsApp con tu talla habitual. <a class="support-link" href="#info/guia-de-tallas">Guía de tallas</a></p></div></details>
             <details><summary>Envío</summary><div class="stack" style="padding-top:10px"><p class="tiny">Recojo en tienda${stores.length ? ": " + esc(stores.map((s) => s.name).join(" · ")) : ""}.</p><p class="tiny">Envío a domicilio a todo el Perú: elige «Envío a domicilio» al hacer tu pedido y coordinamos contigo el costo y la fecha. <a class="support-link" href="#info/envios">Tiempos y costos de envío</a></p></div></details>
           </div>
         </div>

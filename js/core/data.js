@@ -8,7 +8,7 @@
   const PAY_TO_DB = { CASH: "EFECTIVO", CARD: "TARJETA", YAPE: "YAPE", PLIN: "PLIN", TRANSFER: "TRANSFERENCIA" };
   const PAY_FROM_DB = { EFECTIVO: "CASH", TARJETA: "CARD", YAPE: "YAPE", PLIN: "PLIN", TRANSFERENCIA: "TRANSFER" };
   const SALE_STATUS = { COMPLETADA: "COMPLETED", ANULADA: "VOID", SEPARADO: "SEPARADO" };
-  const ROLE_ORDER = ["ADMIN", "SUPERVISOR", "CAJERO", "VENDEDOR", "ALMACENERO", "CLIENTE"];
+  const ROLE_ORDER = ["ADMIN", "SUPERVISOR", "CAJERO", "VENDEDOR", "ALMACENERO", "CONTADOR", "CLIENTE"];
   const RPC_ONLY = new Set(["sales", "sale_items", "payments", "invoices", "stock_levels", "stock_movements", "cash_sessions", "transfers", "layaways",
     "consignments", "production_receipts", "expenses"]);
   const BUCKET_PROOFS = "payment-proofs";
@@ -32,7 +32,7 @@
 
   // Colección: ajustes del inicio
   const SF_KEYS = {
-    home_hero_image: ["hero_image_url"], home_kicker: ["hero_kicker"], home_title: ["hero_title"], home_shade: ["hero_shade"], home_cols: ["mobile_cols"], home_category_order: ["category_order"],
+    home_hero_image: ["hero_image_url"], home_kicker: ["hero_kicker"], home_title: ["hero_title"], home_subtitle: ["hero_subtitle"], home_cta_text: ["hero_cta_text"], home_cta_link: ["hero_cta_link"], home_shade: ["hero_shade"], home_cols: ["mobile_cols"], home_category_order: ["category_order"],
     home_align: ["hero_align", { left: "izquierda", center: "centro", right: "derecha" }],
     home_theme: ["theme", { dark: "oscuro", light: "claro" }],
     home_hero_style: ["hero_style", { full: "foto_completa", split: "mitad", text: "solo_texto" }],
@@ -54,6 +54,10 @@
       out[k] = map ? (Object.keys(map).find((x) => map[x] === db[dbKey]) || "") : db[dbKey];
     });
     if (db.ui_palette) out.ui_palette = db.ui_palette; if (db.ui_season) out.ui_season = db.ui_season; // v32: paleta/adorno (BD v17)
+    // v33 (BD v18): notas del carrito y de devoluciones, banner y fechas por color (estilo.ui.js espera un objeto)
+    ["cart_note", "returns_note"].forEach((k) => { if (db[k] != null && String(db[k]).trim()) out[k] = String(db[k]); });
+    let eta = {}; try { const v = typeof db.color_eta === "string" ? JSON.parse(db.color_eta || "{}") : db.color_eta; if (v && typeof v === "object" && !Array.isArray(v)) eta = v; } catch { eta = {}; }
+    out.color_eta_manual = eta; out.color_eta = Object.assign({}, eta);
     out._db = db; // v29: claves crudas (v15: razon_social, ruc, terminos, privacidad, envios_info…)
     return out;
   }
@@ -70,7 +74,7 @@
   async function loadAll() {
     // Invitados y clientes (rol CLIENTE / sin rol): catálogo público. Las tablas internas (products, categories…) las niega RLS
     // a un cliente y get() convierte esa negación en listas vacías → "No hay piezas". Solo el personal usa la carga completa.
-    const staff = !!(S.token && S.user && (S.user.roles || []).some((r) => r && r !== "CLIENTE"));
+    const staff = !!(S.token && S.user && (S.user.roles || []).some((r) => r && r !== "CLIENTE" && r !== "CONTADOR")); // v33: CONTADOR no es personal (is_staff() falso)
     if (!staff) {
       const [pub, cfg, notifs] = await Promise.all([loadPublicProducts(), loadStorefront(), S.token ? get("v_my_notifications?select=*&order=created_at.desc&limit=50") : Promise.resolve([])]);
       R.raw = { pub, notifications: notifs }; R.config = {}; R.storefront = cfg; R.mapped = mapPublic(pub);
@@ -132,7 +136,8 @@
         product_id: g.product_id, group_key: g.group_key, product_name: g.product_name, description: g.description, category: g.category, category_code: g.category_code,
         brand: g.brand, model: g.model, fit: g.fit, fit_label: g.fit_label, composition: g.composition, care_instructions: g.care_instructions, season: g.season, promo_status: g.promo_status, color: g.color, color_hex: g.color_hex, fabric: g.fabric,
         variant_id: z.variant_id, sku: z.sku, size: z.size_code || z.size_label, size_order: n, sale_price: z.price, final_price: z.best_price ?? z.price,
-        is_clearance: z.is_clearance, in_stock: z.in_stock, image_url: own[0] || g.cover_image || gen[0] || null, images: own.concat(gen.filter((u) => !own.includes(u))),
+        is_clearance: z.is_clearance, in_stock: z.in_stock, slug: g.slug || null, occasions: g.occasions || [], cut_id: g.cut_id || null, cut_name: g.cut_name || null, pieces: g.pieces || [], lining: g.lining || null,
+        restock_eta: z.restock_eta || g.restock_eta || null, restock_note: z.restock_note || g.restock_note || null, color_images: Array.isArray(g.color_images) ? g.color_images : [], fabric_swatch_url: g.fabric_swatch_url || null, image_url: own[0] || g.cover_image || gen[0] || null, images: own.concat(gen.filter((u) => !own.includes(u))),
       };
     }));
   }
@@ -145,7 +150,8 @@
         category_id: r.category_code, brand_id: null, brand: r.brand, season: r.season || "", size_label: r.size, size_order: r.size_order == null ? null : Number(r.size_order), color: r.color, color_hex: r.color_hex, fabric: r.fabric,
         sale_price_cents: cents(r.sale_price), offer_price_cents: r.final_price < r.sale_price ? cents(r.final_price) : 0, is_offer: Number(r.final_price) < Number(r.sale_price),
         offer_label: r.is_clearance ? "Remate" : "Oferta", is_clearance: r.is_clearance, image_url: r.image_url || null, images: Array.isArray(r.images) ? r.images : [], stock_total: r.in_stock ? 1 : 0,
-        promo_status: r.promo_status, is_active: true, deleted_at: null,
+        promo_status: r.promo_status, is_active: true, deleted_at: null, slug: r.slug || null, occasions: r.occasions || [], cut_id: r.cut_id || null, cut_name: r.cut_name || null,
+        restock_eta: r.restock_eta || null, restock_note: r.restock_note || null, color_images: r.color_images || [], fabric_swatch_url: r.fabric_swatch_url || null,
         // ficha técnica (v15 de Elon: se muestran solo si la vista las trae)
         marca: r.brand || r.marca || null, modelo: r.model || r.modelo || null, entalle: r.fit_label || r.fit || r.entalle || null, composicion: r.composition || r.composicion || null, cuidados: r.care_instructions || r.cuidados || null, fit: r.fit || null })),
     };
@@ -584,7 +590,8 @@
     roles.sort((a, b) => ROLE_ORDER.indexOf(a) - ROLE_ORDER.indexOf(b));
     if (prof && prof.is_active === false) roles = [];
     this.user = { id: authUser.id, email: (prof && prof.email) || authUser.email, full_name: (prof && prof.full_name) || (authUser.user_metadata && authUser.user_metadata.full_name) || authUser.email,
-      role: roles.filter((r) => r !== "CLIENTE")[0] || "PENDIENTE", roles, store_id: stores[0] || null, stores, is_active: !prof || prof.is_active !== false };
+      role: roles.filter((r) => r !== "CLIENTE")[0] || "PENDIENTE", roles, store_id: stores[0] || null, stores, is_active: !prof || prof.is_active !== false,
+      departamento: (prof && prof.departamento) || "", avatar_url: (prof && prof.avatar_url) || "" }; // v33: perfil extra (BD v18)
   };
 
   S.verifyCredentials = async function (email, password) {

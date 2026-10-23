@@ -1,8 +1,8 @@
 (function () {
   const PAY = { CASH: "Efectivo", YAPE: "Yape", PLIN: "Plin", CARD: "Tarjeta", TRANSFER: "Transferencia" };
-  const ROLES = ["ADMIN", "SUPERVISOR", "VENDEDOR", "ALMACENERO", "PENDIENTE"];
+  const ROLES = ["ADMIN", "SUPERVISOR", "VENDEDOR", "ALMACENERO", "CONTADOR", "PENDIENTE"];
   const PERMS = ["CUADRE"];
-  const ROLE_LABEL = { CUADRE: "Cuadrar caja", ADMIN: "Administrador", SUPERVISOR: "Supervisor", VENDEDOR: "Vendedor", CAJERO: "Cajero", ALMACENERO: "Almacenero", PENDIENTE: "Pendiente" };
+  const ROLE_LABEL = { CUADRE: "Cuadrar caja", ADMIN: "Administrador", SUPERVISOR: "Supervisor", VENDEDOR: "Vendedor", CAJERO: "Cajero", ALMACENERO: "Almacenero", CONTADOR: "Contador", PENDIENTE: "Pendiente" };
   const state = { data: {}, user: null };
   const ui = {
     filter: "todas",
@@ -412,15 +412,16 @@
     const query = ui.q.trim().toLowerCase();
     const list = visibleProducts().filter((product) => {
       if (ui.filter !== "todas" && product.category_id !== ui.filter) return false;
+      if (window.DL_OCC_FILTER && !window.DL_OCC_FILTER(product)) return false; // v33: #coleccion/evento/<código> (BD v18)
       if (!query) return true;
       return (product.name + " " + product.sku).toLowerCase().includes(query);
     });
-    if (!list.length) return ui.filter !== "todas" || query ? `<div class="empty-filter"><p class="muted">No hay piezas con ese filtro.</p><button class="link-btn forgot-link" type="button" data-act="clear-search">Limpiar búsqueda</button></div>` : `<p class="muted">Pronto nuevas prendas</p>`;
+    if (!list.length) return ui.filter !== "todas" || query || (window.DL_OCC_ACTIVE && window.DL_OCC_ACTIVE()) ? `<div class="empty-filter"><p class="muted">No hay piezas con ese filtro.</p><button class="link-btn forgot-link" type="button" data-act="clear-search">Limpiar búsqueda</button></div>` : `<p class="muted">Pronto nuevas prendas</p>`;
     return productGroups(list).map(cardHtml).join("");
   }
 
 
-  const HOME_DEFAULTS = { home_hero_image: "", home_kicker: "Nueva colección", home_title: "Estilo y elegancia para hombres", home_align: "left", home_shade: "60", home_theme: "dark", home_cols: "2", home_hero_style: "full" };
+  const HOME_DEFAULTS = { home_hero_image: "", home_kicker: "Nueva colección", home_title: "Estilo y elegancia para hombres", home_align: "left", home_shade: "60", home_theme: "dark", home_cols: "2", home_hero_style: "full", home_subtitle: "", home_cta_text: "", home_cta_link: "" };
   function homeCfg() {
     const conf = (window.DL_CONFIG && window.DL_CONFIG.BUSINESS) || {};
     const remote = ui.homeDraft || (Store.v2 && Store.v2.storefront) || {};
@@ -428,6 +429,14 @@
     Object.keys(HOME_DEFAULTS).forEach((k) => { out[k] = remote[k] != null && remote[k] !== "" ? remote[k] : HOME_DEFAULTS[k]; });
     if (!out.home_hero_image) out.home_hero_image = conf.heroImage || "";
     return out;
+  }
+  // v33 · subtítulo, botón del banner y nota de devoluciones (BD v18: hero_subtitle, hero_cta_text, hero_cta_link, returns_note)
+  function heroExtra(hc) {
+    const link = String(hc.home_cta_link || "").trim(); const okLink = /^#[\w\-/]*$|^https:\/\//i.test(link);
+    const ret = (Store.v2 && Store.v2.storefront && Store.v2.storefront.returns_note) || "";
+    return (hc.home_subtitle ? `<p class="hero-sub">${esc(hc.home_subtitle)}</p>` : "")
+      + (hc.home_cta_text && okLink ? `<p><a class="btn" href="${esc(link)}"${/^https/i.test(link) ? ' target="_blank" rel="noopener"' : ""}>${esc(hc.home_cta_text)}</a></p>` : "")
+      + (ret ? `<p class="tiny hero-returns">${esc(ret)}</p>` : "");
   }
   function heroImage() {
     const src = driveDirect(homeCfg().home_hero_image || "");
@@ -444,14 +453,14 @@
     const align = ["left", "center", "right"].includes(hc.home_align) ? hc.home_align : "left";
     const style = ["full", "split", "text"].includes(hc.home_hero_style) ? hc.home_hero_style : "full";
     if (style === "text") return `<section class="hero hero-text" data-cols="${hc.home_cols === "1" ? 1 : 2}" style="text-align:${align}">
-        ${hc.home_kicker ? `<p class="kicker">${esc(hc.home_kicker)}</p>` : ""}<h1>${esc(hc.home_title)}</h1></section>` + catalogBody(chips);
+        ${hc.home_kicker ? `<p class="kicker">${esc(hc.home_kicker)}</p>` : ""}<h1>${esc(hc.home_title)}</h1>${heroExtra(hc)}</section>` + catalogBody(chips);
     if (style === "split") return `<section class="hero hero-split" data-cols="${hc.home_cols === "1" ? 1 : 2}" style="--hero-shade:${shade}">
-        <div class="hero-copy" style="text-align:${align}">${hc.home_kicker ? `<p class="kicker">${esc(hc.home_kicker)}</p>` : ""}<h1>${esc(hc.home_title)}</h1></div>
+        <div class="hero-copy" style="text-align:${align}">${hc.home_kicker ? `<p class="kicker">${esc(hc.home_kicker)}</p>` : ""}<h1>${esc(hc.home_title)}</h1>${heroExtra(hc)}</div>
         <figure${heroSrc ? "" : ' style="background:linear-gradient(160deg,#0b0b0b 0%,#1c1a17 55%,#2a2520 100%)"'}>${heroSrc ? `<img src="${esc(heroSrc)}" alt="Dan Liner">` : ""}</figure></section>` + catalogBody(chips);
     return `<section class="hero" data-cols="${hc.home_cols === "1" ? 1 : 2}" style="--hero-shade:${shade}">
       <div class="hero-copy" style="text-align:${align}">
         ${hc.home_kicker ? `<p class="kicker">${esc(hc.home_kicker)}</p>` : ""}
-        <h1>${esc(hc.home_title)}</h1>
+        <h1>${esc(hc.home_title)}</h1>${heroExtra(hc)}
       </div>
       <figure${heroSrc ? "" : ' style="background:linear-gradient(160deg,#0b0b0b 0%,#1c1a17 55%,#2a2520 100%);min-height:320px"'}>
         ${heroSrc ? `<img src="${esc(heroSrc)}" alt="Dan Liner">` : ""}
@@ -459,7 +468,7 @@
     </section>` + catalogBody(chips);
   }
   function catalogBody(chips) {
-    return `<div class="toolbar">
+    return `${window.DL_EVENT_RAIL ? window.DL_EVENT_RAIL() : ""}<div class="toolbar">
       ${chips}
       <input class="search" id="q" type="search" name="dl-catalogo-busqueda" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" data-lpignore="true" data-1p-ignore value="${esc(ui.q)}" placeholder="Buscar pieza" aria-label="Buscar pieza">
     </div>
@@ -583,7 +592,7 @@
       if (sub && window.DL_CUENTA_SUB && window.DL_CUENTA_SUB[sub]) return `<section class="stack account" style="padding:24px 0 48px; max-width:640px"><a class="link-btn" href="#cuenta">← Mi cuenta</a>${window.DL_CUENTA_SUB[sub]()}</section>`;
       return `<section class="stack account" style="padding:24px 0 48px; max-width:640px">
         <p class="kicker">Mi cuenta</p>
-        <div class="account-card"><span class="avatar" aria-hidden="true">${esc(ini || "?")}</span>
+        <div class="account-card">${state.user.avatar_url && window.DL33 ? `<img class="avatar" src="${esc(safeSrc(window.DL33.publicUrl(state.user.avatar_url)))}" alt="" width="48" height="48" style="object-fit:cover">` : `<span class="avatar" aria-hidden="true">${esc(ini || "?")}</span>`}
           <div style="min-width:0"><h1 style="margin:0;overflow-wrap:anywhere;font-size:24px;line-height:1.15">${esc(state.user.full_name)}</h1><p class="muted tiny" style="margin:4px 0 0;overflow-wrap:anywhere">${esc(state.user.email)} · ${esc(roleTxt)}</p></div>
           <button class="edit-btn" type="button" data-act="acc-edit" aria-label="Editar mis datos" title="Editar mis datos">${icon("pencil", 18)}</button></div>
         ${window.DL_CUENTA_EXTRA ? window.DL_CUENTA_EXTRA() : ""}
@@ -747,11 +756,11 @@
     else if (SPECS[ui.admin]) body = renderCrud(ui.admin);
     else body = renderResumen();
     const GROUPS = [
-      ["Ventas", ["resumen", "ventas", "pedidos", "customers", "promos", "adelantos", "cajas", "consignacion"]],
-      ["Productos", ["products", "categories", "sizes", "fabrics", "colors", "brands", "stock", "prestados", "traslados", "produccion", "recepcion", "partners"]],
+      ["Ventas", ["resumen", "ventas", "comprobantes", "pedidos", "customers", "promos", "adelantos", "cajas", "consignacion"]],
+      ["Productos", ["products", "categories", "sizes", "fabrics", "cortes", "ocasiones", "colors", "brands", "stock", "prestados", "traslados", "produccion", "recepcion", "partners"]],
       ["Tiendas", ["stores", "warehouses", "cash_registers", "document_series", "panel"]],
-      ["Personal", ["staff", "asistencia"]],
-      ["Configuración", ["inicio", "personalizacion", "legal", "etiquetas", "expenses"]],
+      ["Personal", ["staff", "roles", "asistencia"]],
+      ["Configuración", ["inicio", "textos", "personalizacion", "legal", "etiquetas", "sistema", "expenses"]],
       ["Reportes", ["reporte"]],
     ];
     const label = Object.fromEntries(tabs);
@@ -1389,7 +1398,7 @@
     return `<button class="btn ghost small" type="button" data-act="staff-back">← Equipo</button>
       <div class="panel person" style="margin:12px 0"><span class="avatar">${esc(String(p.full_name || "?").charAt(0).toUpperCase())}</span>
         <span style="flex:1"><b>${esc(p.full_name)}</b><br><span class="tiny">${esc(p.email || "")} · alta ${esc(localDay(p.created_at) || "—")}</span></span>
-        ${p.is_active === false ? `<span class="badge">Desactivado</span>` : `<span class="badge ok">Activo</span>`}</div>
+        ${p.is_active === false ? `<span class="badge">Desactivado</span>` : `<span class="badge ok">Activo</span>`}${window.DL_PW_BTN && p.role !== "ADMIN" ? window.DL_PW_BTN(p.id, p.email, p.full_name) : ""}</div>
       <div class="stats">
         <article class="stat"><span class="tiny">Vendido (total)</span><b>${moneyHtml(total)}</b></article>
         <article class="stat"><span class="tiny">Ventas</span><b><span class="num">${ss.length}</span></b></article>
@@ -1482,6 +1491,9 @@
       <label>Foto principal (enlace de Drive)<input name="home_hero_image" inputmode="url" placeholder="Enlace de Google Drive" value="${esc(h.home_hero_image)}"></label>
       <label>Texto pequeño<input name="home_kicker" placeholder="Nueva colección" value="${esc(h.home_kicker)}"></label>
       <label>Título<input name="home_title" required placeholder="Título" value="${esc(h.home_title)}"></label>
+      <label>Subtítulo (opcional)<input name="home_subtitle" maxlength="300" value="${esc(h.home_subtitle)}"></label>
+      <div class="two"><label>Texto del botón (opcional)<input name="home_cta_text" maxlength="40" placeholder="Ver la colección" value="${esc(h.home_cta_text)}"></label>
+        <label>Enlace del botón<input name="home_cta_link" placeholder="#coleccion o https://…" value="${esc(h.home_cta_link)}"></label></div>
       <div class="two"><label>Alineación${opt("home_align", [["left", "Izquierda"], ["center", "Centro"], ["right", "Derecha"]])}</label>
         <label>Oscurecer la foto: <span id="shade-val">${esc(h.home_shade)}</span>%<input name="home_shade" type="range" min="0" max="100" step="5" value="${esc(h.home_shade)}"></label></div>
       <div class="two"><label>Tema por defecto${opt("home_theme", [["dark", "Oscuro"], ["light", "Claro"]])}</label>
@@ -1841,7 +1853,7 @@
     if (action === "add") { bump(el.dataset.cart === "caja" ? ui.cajaCart : ui.cart, el.dataset.id, 1); saveCart(); render(); return; }
     if (action === "qty") { bump(el.dataset.cart === "caja" ? ui.cajaCart : ui.cart, el.dataset.id, Number(el.dataset.dir)); saveCart(); render(); return; }
     if (action === "pay") { ui.pay = el.dataset.id; render(); return; }
-    if (action === "clear-search") { ui.q = ""; ui.filter = "todas"; render(); return; }
+    if (action === "clear-search") { ui.q = ""; ui.filter = "todas"; if (/^#coleccion\/evento\//.test(location.hash)) { location.hash = "coleccion"; return; } render(); return; }
     if (action === "auth-mode") { ui.authMode = el.dataset.id; render(); return; }
     if (action === "signout") { ui.q = ""; ui.filter = "todas"; await Store.signOut(); await reload(); location.hash = "coleccion"; return; }
     if (action === "new") { ui.edit = null; ui.showForm = el.dataset.table; render(); document.getElementById("crud-form")?.scrollIntoView({ block: "start" }); return; }
@@ -2043,7 +2055,7 @@
         <div class="cart-ctl"><span class="qty"><button type="button" data-act="qty" data-cart="public" data-id="${esc(p.id)}" data-dir="-1" aria-label="Quitar uno">−</button><span>${line.qty}</span><button type="button" data-act="qty" data-cart="public" data-id="${esc(p.id)}" data-dir="1" aria-label="Agregar uno">+</button></span><b class="num">${soles(priceOf(p).unit * line.qty)}</b></div></div></div>`).join("")}</div>
         <div class="cart-sum"><div class="row"><span>Subtotal</span><b class="num">${soles(total)}</b></div><div class="row tiny"><span>Envío</span><span>Se calcula en el siguiente paso</span></div>${sum}
         <button class="btn full" type="button" data-act="step" data-id="datos">Continuar con mi pedido</button><a class="btn ghost full" href="#coleccion">Seguir comprando</a>
-        <ul class="cart-trust"><li>Paga con Yape, Plin o contra entrega</li><li>Recoge en tienda o recíbelo en casa</li><li>Cambios dentro de 7 días</li></ul></div></div>`
+        <ul class="cart-trust"><li>Paga con Yape, Plin o contra entrega</li><li>Recoge en tienda o recíbelo en casa</li><li class="no-ret">${esc((window.Store && window.Store.v2 && window.Store.v2.storefront && window.Store.v2.storefront.cart_note) || "No se aceptan cambios ni devoluciones")}</li><li class="no-ret">Fallas de fábrica: atención personalizada por WhatsApp, conforme a ley · <a href="#legal/reclamaciones">Libro de Reclamaciones</a></li></ul></div></div>`
         : `<div class="empty-cart stack"><img src="assets/logo-gold.png" alt="" width="56" height="56"><h2>Tu bolsa está vacía</h2><p class="muted">Descubre ternos de fábrica con acabado de sastrería.</p><a class="btn" href="#coleccion">Ver colección</a></div>`;
     } else if (step === "datos") {
       const c = ui.checkout || (ui.checkout = {});

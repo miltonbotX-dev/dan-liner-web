@@ -1335,3 +1335,149 @@ html[data-theme="dark"] .field-err { color:#ff8a7a; }
 /* v32 · 360px: la barra de caja/asistencia no debe desbordar */
 .counter-row, .counter-att, .counter-att .att-bar { box-sizing:border-box; max-width:100%; min-width:0; }
 .counter-row select { min-width:0; max-width:100%; }
+
+/* v33 · política sin cambios ni devoluciones */
+.cart-trust li.no-ret::before { content:"•"; }
+.cart-trust li.no-ret a { color:inherit; text-decoration:underline; }
+.policy-law { margin-top:14px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; font-size:13px; color:var(--muted); }
+
+/* v33 · tarjeta «Mi PIN de cierre» en Mi cuenta */
+.pin-card { display:flex; align-items:center; gap:12px; padding:14px 16px; border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); text-decoration:none; }
+.pin-card > span:nth-child(2) { display:grid; gap:2px; flex:1; min-width:0; }
+.pin-card b { font-size:15px; font-weight:600; } .pin-card small { font-size:12px; color:var(--muted); }
+.pin-card .pin-ic { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; flex:none; background:color-mix(in srgb, var(--gold) 16%, transparent); color:var(--gold); }
+.pin-card.is-todo { border:1.5px solid var(--gold); background:color-mix(in srgb, var(--gold) 10%, var(--surface)); box-shadow:0 0 0 4px color-mix(in srgb, var(--gold) 14%, transparent); }
+.pin-card.is-todo .btn { flex:none; pointer-events:none; }
+.pin-card .pin-go { font-size:22px; color:var(--muted); }
+@media (max-width:400px) { .pin-card.is-todo { flex-wrap:wrap; } .pin-card.is-todo .btn { width:100%; justify-content:center; } }
+
+/* v33 · cambio de contraseña por el admin (lápiz en la ficha) */
+.pw-admin-btn { flex:none; margin-left:6px; }
+.pw-admin > div { display:grid; gap:12px; }
+.pw-admin .pw-modes { display:flex; flex-wrap:wrap; gap:8px; }
+.pw-admin .pw-modes .chip { flex:1 1 140px; justify-content:center; text-align:center; }
+.pw-admin label { display:grid; gap:6px; }
+.pw-admin .pw-wrap { position:relative; display:block; }
+.pw-admin .pw-wrap input { width:100%; padding-right:44px; }
+.pw-admin .pw-eye { position:absolute; right:6px; top:50%; transform:translateY(-50%); }
+/* ===== v33 · IU ===== */
+/* Probador v2: escenario compacto que no tapa los colores */
+.pb-stage { position:relative; top:auto; z-index:0; overflow:hidden; padding:14px 14px 10px; }
+@media (min-width:721px){ .pb-stage { position:sticky; top:84px; } }
+@media (max-width:720px){ .pb-svg { max-height:46vh; } .pb-grid { gap:14px; } }
+.pb-beta { font-size:9px; letter-spacing:.14em; padding:2px 6px; border:1px solid var(--gold); border-radius:999px; margin-left:6px; vertical-align:middle; }
+.pb-svg .pb-body { transform-origin:120px 494px; transition:transform .9s cubic-bezier(.4,0,.2,1); }
+.pb-svg .pb-arm, .pb-svg .pb-fore { transform-box:view-box; transition:transform .9s cubic-bezier(.4,0,.2,1); }
+.pb-svg .pb-hand { transition:opacity .4s; }
+.pb-svg.pose-bolsillo .pb-body { transform:rotate(-1deg); }
+.pb-svg.pose-bolsillo .pb-arm-l { transform:rotate(-5deg); }
+.pb-svg.pose-bolsillo .pb-arm-l .pb-fore { transform:rotate(-12deg); }
+.pb-svg.pose-bolsillo .pb-arm-l .pb-hand { opacity:0; }
+.pb-svg.pose-boton .pb-body { transform:rotate(1deg); }
+.pb-svg.pose-boton .pb-arm-r { transform:rotate(4deg); }
+.pb-svg.pose-boton .pb-arm-r .pb-fore { transform:rotate(52deg); }
+.pb-svg path { transition:fill .35s ease; }
+.pb-poses { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; margin-top:8px; }
+.pb-poses button { border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:999px; padding:6px 12px; font:inherit; font-size:12px; cursor:pointer; }
+.pb-poses button.on { border-color:var(--gold); color:var(--ink); background:rgba(214,181,109,.14); }
+.pb-tabs { display:flex; gap:18px; overflow-x:auto; scrollbar-width:none; border-bottom:1px solid var(--line); }
+.pb-tabs::-webkit-scrollbar { display:none; }
+.pb-tabs button { flex:none; border:0; background:none; color:var(--muted); font:inherit; font-size:13px; letter-spacing:.06em; padding:10px 0; cursor:pointer; }
+.pb-tabs button.on { color:var(--ink); font-weight:600; box-shadow:inset 0 -2px 0 var(--gold); }
+.pb-sw button { width:64px; min-height:64px; }
+.pb-eta { margin:0; padding:10px 12px; border-radius:10px; background:rgba(214,181,109,.12); }
+@media (prefers-reduced-motion:reduce){ .pb-svg * { transition:none !important; } }
+
+/* Lupa (fotos y muestra de tela) */
+.pdp-gallery img { cursor:zoom-in; }
+.dl-zoom { position:fixed; inset:0; z-index:1000; background:rgba(5,5,5,.94); display:grid; place-items:center; animation:dl-fade .2s; }
+.dl-zoom.is-out { opacity:0; transition:opacity .2s; }
+.dl-zoom-pan { width:100%; height:100%; display:grid; place-items:center; overflow:hidden; touch-action:none; }
+.dl-zoom-pan img { max-width:94vw; max-height:84vh; object-fit:contain; transition:transform .35s cubic-bezier(.4,0,.2,1); animation:dl-zoom .3s; cursor:zoom-in; }
+.dl-zoom.is-in .dl-zoom-pan img { transform:scale(2.4); cursor:zoom-out; }
+.dl-zoom-x { position:absolute; top:max(14px, env(safe-area-inset-top)); right:14px; z-index:2; font-size:22px; }
+.dl-zoom-hint { position:absolute; bottom:max(18px, env(safe-area-inset-bottom)); left:0; right:0; text-align:center; color:#cfc7b8; font-size:12px; letter-spacing:.08em; margin:0; }
+/* Fotos por vista: <img data-view="Frente|Espalda|Detalle"> y muestra de tela */
+.pdp-gallery { position:relative; }
+.pdp-gallery figure { margin:0; position:relative; }
+.pdp-gallery figure figcaption { position:absolute; left:10px; bottom:10px; font-size:10px; letter-spacing:.16em; text-transform:uppercase; padding:4px 8px; border-radius:999px; background:rgba(10,10,10,.6); color:#f3ede2; }
+.fabric-swatch { display:inline-flex; align-items:center; gap:10px; border:1px solid var(--line); background:none; color:var(--ink); border-radius:999px; padding:4px 14px 4px 4px; font:inherit; font-size:13px; cursor:zoom-in; }
+.fabric-swatch::before { content:""; width:38px; height:38px; border-radius:50%; background:var(--img) center/260% no-repeat, var(--surface); border:1px solid rgba(214,181,109,.6); transition:background-size .6s ease; }
+.fabric-swatch:hover::before { background-size:340%; }
+
+/* Pago Yape/Plin con QR */
+.pay-qr { display:grid; grid-template-columns:150px 1fr; gap:16px; align-items:center; padding:16px; border:1px solid rgba(214,181,109,.45); border-radius:16px; background:linear-gradient(135deg,rgba(214,181,109,.1),transparent); }
+.pay-qr img { width:150px; height:150px; object-fit:contain; background:#fff; border-radius:12px; padding:8px; }
+.pay-qr .amt { font-family:"JetBrains Mono",monospace; font-size:28px; color:var(--gold); font-weight:600; }
+.pay-qr ol { margin:6px 0 0; padding-left:18px; font-size:12px; color:var(--muted); line-height:1.7; }
+@media (max-width:440px){ .pay-qr { grid-template-columns:1fr; justify-items:center; text-align:center; } .pay-qr ol { text-align:left; } }
+.pay-qr.yape { --brand:#742284; } .pay-qr.plin { --brand:#00b2a9; }
+.pay-qr .brand-tag { display:inline-block; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#fff; background:var(--brand,#333); border-radius:999px; padding:3px 8px; }
+/* Tipo de comprobante: usa .pay-choice; en grupo */
+.doc-choice { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; }
+
+/* Guía de tallas (saco / pantalón / chaleco) */
+.size-guide { display:grid; gap:12px; }
+.size-guide .sg-tabs { display:flex; gap:18px; border-bottom:1px solid var(--line); }
+.size-guide .sg-tabs button { border:0; background:none; font:inherit; font-size:13px; color:var(--muted); padding:8px 0; cursor:pointer; }
+.size-guide .sg-tabs button.on { color:var(--ink); font-weight:600; box-shadow:inset 0 -2px 0 var(--gold); }
+.sg-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:12px; }
+.sg-table { width:100%; border-collapse:collapse; font-size:13px; min-width:420px; }
+.sg-table th, .sg-table td { padding:10px 12px; text-align:center; border-bottom:1px solid var(--line); white-space:nowrap; }
+.sg-table thead th { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; background:var(--surface); }
+.sg-table tbody th { text-align:left; font-weight:600; position:sticky; left:0; background:var(--canvas); }
+.sg-table td { font-family:"JetBrains Mono",monospace; }
+.sg-table tr.is-mine td, .sg-table tr.is-mine th { background:rgba(214,181,109,.14); }
+.sg-cut { font-size:11px; color:var(--muted); }
+.sg-howto { display:grid; grid-template-columns:90px 1fr; gap:12px; align-items:center; font-size:12px; color:var(--muted); }
+
+/* Ficha técnica: cuidados con íconos */
+.care-list { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:8px; }
+.care-list li { display:flex; gap:10px; align-items:center; font-size:13px; }
+.care-list li::before { content:""; width:22px; height:22px; flex:none; border:1px solid var(--gold); border-radius:6px; background:rgba(214,181,109,.1); }
+
+/* Colección por evento: <nav class="event-rail"><a class="event-card" href="#coleccion/evento/boda" style="--img:url(...)"><b>Boda</b><span>12 piezas</span></a> */
+.event-rail { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(150px,44%); gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; padding:4px 0 10px; }
+.event-rail::-webkit-scrollbar { display:none; }
+@media (min-width:760px){ .event-rail { grid-auto-flow:row; grid-template-columns:repeat(4,1fr); } }
+.event-card { position:relative; aspect-ratio:4/5; border-radius:14px; overflow:hidden; display:flex; flex-direction:column; justify-content:flex-end; padding:14px; text-decoration:none; color:#f3ede2; background:var(--img, linear-gradient(160deg,#2a2620,#0d0c0a)) center/cover; scroll-snap-align:start; }
+.event-card::before { content:""; position:absolute; inset:0; background:linear-gradient(transparent 40%, rgba(0,0,0,.75)); }
+.event-card > * { position:relative; }
+.event-card b { font:400 22px/1.1 var(--display); }
+.event-card span { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#d6b56d; }
+.event-card.on { outline:2px solid var(--gold); outline-offset:2px; }
+
+/* Cliente: foto + departamento (para reseñas) */
+.user-chip { display:inline-flex; align-items:center; gap:10px; }
+.user-chip img, .user-chip .ava { width:36px; height:36px; border-radius:50%; object-fit:cover; background:var(--surface); border:1px solid rgba(214,181,109,.5); display:grid; place-items:center; font-weight:600; color:var(--gold); }
+.user-chip small { display:block; color:var(--muted); font-size:11px; }
+
+/* Admin: almacenamiento de Supabase */
+.storage-meter { display:grid; gap:8px; }
+.storage-meter .bar { height:12px; border-radius:999px; background:var(--line); overflow:hidden; }
+.storage-meter .bar i { display:block; height:100%; width:var(--pct,0%); background:linear-gradient(90deg,#9a7a35,#d6b56d); border-radius:inherit; animation:dl-bar .8s ease-out; }
+.storage-meter .bar.warn i { background:linear-gradient(90deg,#b8860b,#e0a030); } .storage-meter .bar.full i { background:#c0392b; }
+.storage-rows { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+.storage-rows > div { padding:12px; border:1px solid var(--line); border-radius:12px; }
+.storage-rows b { display:block; font-family:"JetBrains Mono",monospace; font-size:17px; }
+
+/* Admin: permisos por sección */
+.perm-grid { display:grid; gap:14px; }
+.perm-group { border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+.perm-group > summary { cursor:pointer; font-weight:600; list-style:none; display:flex; justify-content:space-between; }
+.perm-group > summary::after { content:"+"; color:var(--gold); } .perm-group[open] > summary::after { content:"−"; }
+.perm-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:6px 14px; padding-top:10px; }
+.perm-list label { display:flex; gap:8px; align-items:center; font-size:13px; }
+
+/* v33 · IU · arreglos finales */
+/* Paletas con acento negro en modo claro (nordico, gala): la etiqueta del banner va como sello legible */
+html[data-theme="light"][data-palette="nordico"] .hero .kicker,
+html[data-theme="light"][data-palette="gala"] .hero .kicker { display:inline-block; color:#f6f4ef; background:rgba(21,21,21,.78); padding:5px 10px; border-radius:999px; text-shadow:none; }
+html[data-theme="light"][data-palette="nordico"] .hero .kicker::after,
+html[data-theme="light"][data-palette="gala"] .hero .kicker::after { display:none; }
+/* Nada se sale del ancho en el celular mientras carga (banner, buscador, botón "más") */
+html, body { max-width:100%; overflow-x:clip; }
+.hero, .hero img, .hero picture, .hero video { max-width:100%; }
+.toolbar, .toolbar > * { min-width:0; }
+.toolbar input[type="search"], .toolbar input { flex:1 1 120px; min-width:0; width:auto; max-width:100%; }
+.toolbar button, .toolbar .btn { flex:none; }

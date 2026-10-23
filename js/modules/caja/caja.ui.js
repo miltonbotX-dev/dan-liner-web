@@ -6,7 +6,7 @@
   const DOC_OPTS = [["BOLETA", "Boleta"], ["FACTURA", "Factura"], ["TICKET", "Nota de venta"], ["GUIA", "Guía de remisión (próximamente)"]];
   const DOCS = { BOLETA: { label: "Boleta", series: "B001-", title: "BOLETA DE VENTA" }, FACTURA: { label: "Factura", series: "F001-", title: "FACTURA" }, TICKET: { label: "Nota de venta", series: "NV01-", title: "NOTA DE VENTA" } };
   const PAY_ICON = { CASH: "fa-money-bill-wave", YAPE: "fa-mobile-screen", PLIN: "fa-mobile-screen-button", CARD: "fa-credit-card", TRANSFER: "fa-building-columns", MIXTO: "fa-shuffle" };
-  const BIZ = () => Object.assign({ name: "DAN-LINER", ruc: "", address: "", phone: "", footer: "Gracias por su compra · Cambios dentro de 7 días con boleta" }, (window.DL_CONFIG || {}).BUSINESS || {});
+  const BIZ = () => Object.assign({ name: "DAN-LINER", ruc: "", address: "", phone: "", footer: "Gracias por su compra · No se aceptan cambios ni devoluciones · Defectos de fábrica según ley" }, (window.DL_CONFIG || {}).BUSINESS || {});
   const REMOTE = () => D().Store.mode === "remote";
   async function withOpCodes(payments) {
     if (!REMOTE()) return payments;
@@ -271,8 +271,15 @@
       method = payments.slice().sort((a, b) => b.cents - a.cents)[0].method;
     } else payments = [{ method, cents: total }];
     payments = await withOpCodes(payments);
+    const cart0 = cj.cart.map((l) => String(l.id));
     const sale = await sellWithQt({ customerId: cj.cust.id || null, customerPhone: cj.cust.phone.trim() || null, lines: cj.cart.map((l) => ({ productId: l.id, qty: l.qty, unitCents: l.unit })), payment: method, payments, payProof: cj.proof, docType: cj.doc, series: DOCS[cj.doc].series, customerName: cj.cust.name.trim() || "Varios", customerDoc: docN || null, customerAddress: cj.cust.address.trim() || null });
     cj.salePhone = cj.salePhone || {}; if (cj.cust.phone) cj.salePhone[sale.id] = cj.cust.phone.replace(/\D/g, "");
+    // v33 (BD v18): venta que viene de un pedido web → se vincula con set_order_status(p_sale_id); el trigger copia el comprobante del pedido.
+    const fo = cj.fromOrder; cj.fromOrder = null;
+    if (fo && sale && sale.id && fo.ids.every((id) => cart0.includes(id))) {
+      try { await D().Store.v2api.setOrderStatus(fo.id, "ENTREGADO", null, sale.id); D().toast("Pedido " + fo.code + " entregado y vinculado a la venta", "ok"); }
+      catch (e) { D().toast("Venta emitida, pero no se pudo vincular el pedido " + fo.code + ": " + (e.message || e) + ". Márcalo en Pedidos web.", "error"); }
+    }
     cj.cart = []; cj.cust = { name: "", doc: "", phone: "", address: "" }; cj.pay = "CASH"; cj.mix = {}; cj.proof = null; cj.doc = "BOLETA";
     cj.last = sale.id;
     D().render(); D().toast(DOCS[sale.doc_type || "BOLETA"].label + " " + sale.sale_number + " emitida");

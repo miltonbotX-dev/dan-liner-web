@@ -42,7 +42,7 @@
       return R.ubigeo;
     },
     cancelMyOrder(id, reason) { return S.rpc("cancel_my_order", { p_order_id: num(id), p_reason: reason || null }); },
-    setOrderStatus(id, status, reason) { return S.rpc("set_order_status", { p_order_id: num(id), p_status: status, p_reason: reason || null }); },
+    setOrderStatus(id, status, reason, saleId) { const a = { p_order_id: num(id), p_status: status, p_reason: reason || null }; if (saleId) a.p_sale_id = num(saleId); return S.rpc("set_order_status", a); },
   });
 })();
 
