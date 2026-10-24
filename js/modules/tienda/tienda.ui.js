@@ -42,10 +42,16 @@
       a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["caja", "#caja", "Caja"],
       a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["pedidosweb", "#admin/pedidos", "Pedidos web"],
       a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["separados", "#admin/adelantos", "Separados"],
+      a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["pagos", "#admin/pagos", "Pagos por confirmar"], // v34 (BD v19)
       a(["SUPERVISOR", "VENDEDOR", "CAJERO"]) && ["clientes", "#admin/customers", "Clientes"],
+      !a(["SUPERVISOR"]) && (X.myRoles() || []).includes("REPARTIDOR") && ["reparto", "#admin/reparto", "Reparto"], // v34
+      !a(["SUPERVISOR", "ALMACENERO"]) && (X.myRoles() || []).includes("SASTRE") && ["cortes", "#admin/cortes", "Cortes y medidas"], // v34
+      !X.isAdmin() && (X.myRoles() || []).includes("MARKETING") && ["avisos", "#admin/avisos", "Avisos al celular"], // v34
       a(["SUPERVISOR", "ALMACENERO"]) && ["taller", "#taller", "Taller"],
       a(["SUPERVISOR", "ALMACENERO"]) && ["admin", "#admin", "Administración"],
       !X.isAdmin() && (X.myRoles() || []).includes("CONTADOR") && ["comprobantes", "#comprobantes", "Comprobantes"], // v33: el contador solo ve esto
+      !X.isAdmin() && (X.myRoles() || []).includes("CONTADOR") && ["analitica", "#admin/analitica", "Reportes y análisis"], // v34
+      (X.myRoles() || []).some((r) => r !== "PENDIENTE") && ["guia", "#guia", "Guía de uso"], // v34
     ].filter(Boolean);
   }
   function mountGestion() {
@@ -67,6 +73,27 @@
   window.addEventListener("hashchange", () => { const d = drawer(); if (d && !d.hidden) setDrawer(false); markCurrent(); });
   window.addEventListener("popstate", markCurrent);
   document.addEventListener("DOMContentLoaded", markCurrent);
+
+  // ---------- v34 · Otros colores de la misma pieza y tela (sin recargar ni mover la pantalla) ----------
+  const colorSig = (p) => [p.product_id || p.name, String(p.fabric_id || p.fabric || "").toLowerCase()].join("|");
+  function colorSiblings(v) {
+    if (!v) return [];
+    const sig = colorSig(v);
+    // v34 (BD v19): si hay stock por color de la BD (get_product_color_stock) se usa ese; si no, el stock local.
+    const cs = v.product_id && window.DL_COLOR_STOCK ? window.DL_COLOR_STOCK(v.product_id) : null;
+    const remoteStock = (g) => { const k = String(g.first.color_id) + "|" + String(g.first.fabric_id || ""); return cs && cs[k] != null ? cs[k] : null; };
+    return D().productGroups(D().visibleProducts().filter((p) => colorSig(p) === sig))
+      .map((g) => { const rs = remoteStock(g); return { key: g.key, color: g.first.color || "", hex: g.first.color_hex || "", stock: rs != null ? rs : g.vars.reduce((n, x) => n + Math.max(0, D().stockOf(x)), 0), vars: D().bySize(g.vars) }; })
+      .filter((g) => g.color).sort((a, b) => a.color.localeCompare(b.color, "es"));
+  }
+  // Al cambiar de color se mantiene la talla si hay stock; si no, la primera con stock.
+  function variantInColor(g, size) { return g.vars.find((x) => x.size_label === size && D().stockOf(x) > 0) || g.vars.find((x) => D().stockOf(x) > 0) || g.vars.find((x) => x.size_label === size) || g.vars[0]; }
+  function colorPickHtml(v, key, act) {
+    const sib = colorSiblings(v); if (sib.length < 2) return "";
+    const hex = (h) => (/^#[0-9a-f]{3,8}$/i.test(String(h || "")) ? h : "#888");
+    return `<div class="stack opt-group color-group"><span class="tiny">Color: <b>${esc(v.color || "")}</b></span><div class="color-pick" role="radiogroup" aria-label="Color">${sib.map((g) => `<button type="button" class="chip opt color-opt ${g.key === key ? "on" : ""} ${g.stock <= 0 ? "off" : ""}" role="radio" aria-checked="${g.key === key}" data-act="${act}" data-id="${esc(g.key)}" title="${esc(g.color)}${g.stock <= 0 ? " · agotado" : ""}"><i class="sw" style="background:${hex(g.hex)}" aria-hidden="true"></i>${esc(g.color)}</button>`).join("")}</div></div>`;
+  }
+  window.DL_COLORS = { siblings: colorSiblings, html: colorPickHtml, variantIn: (key, size) => { const v = (D().visibleProducts().find((p) => D().productKey(p) === key)); const g = colorSiblings(v).find((x) => x.key === key); return g ? variantInColor(g, size) : v; } };
 
   // ---------- Ficha completa ----------
   function groupOf(key) { const all = D().visibleProducts(); const vars = D().bySize(all.filter((p) => D().productKey(p) === key)); return vars; }
@@ -93,6 +120,7 @@
           <h1>${esc(v.name)}</h1>
           ${[v.fabric, v.color].filter(Boolean).length ? `<p class="muted">${esc([v.fabric, v.color].filter(Boolean).join(" · "))}</p>` : ""}
           <div class="row" style="justify-content:flex-start"><strong class="price">${D().soles(pr.unit)}</strong>${pr.offer ? `<s class="tiny">${D().soles(pr.list)}</s>` : ""}</div>
+          ${colorPickHtml(v, key, "pdp-color")}
           ${vars.length ? `<div class="stack opt-group"><span class="tiny">Talla${v.size_label ? ": <b>" + esc(v.size_label) + "</b>" : ""}</span><div class="size-pick" role="group" aria-label="Talla">${sizes}</div><span class="tiny ${soldOut ? "bad" : ""}">${esc(stockTxt)}</span></div>` : ""}
           <button class="btn btn-bag full" type="button" data-act="cart-add" data-id="${esc(v.id)}" ${soldOut ? "disabled" : ""}>${D().icon("bag", 16)} ${soldOut ? "Agotado" : "Agregar talla " + esc(v.size_label || "")}</button>
           <div class="pdp-acc">
@@ -164,6 +192,14 @@
   window.DL_ACTIONS = Object.assign(window.DL_ACTIONS || {}, {
     "site-menu": () => { const d = drawer(); setDrawer(d ? d.hidden : false); },
     "pdp-open": (el) => { D().closeSheet(); location.hash = "pieza/" + encodeURIComponent(el.dataset.id); },
+    "pdp-color": (el) => {
+      const key = el.dataset.id; if (!key || key === pdp.key) return;
+      const cur = window.DL_PDP && window.DL_PDP(); const nv = window.DL_COLORS.variantIn(key, cur && cur.size_label); if (!nv) return;
+      const y = window.scrollY;
+      try { history.replaceState(history.state, "", "#pieza/" + encodeURIComponent(key)); } catch { }
+      pdp.key = key; pdp.variant = nv.id; (D().ui.cardSel = D().ui.cardSel || {})[key] = nv.id;
+      D().render(); window.scrollTo(0, y);
+    },
     "pdp-size": (el) => { if (el.disabled) return; pdp.variant = el.dataset.id;  (D().ui.cardSel = D().ui.cardSel || {})[pdp.key] = el.dataset.id; D().render(); },
     "acc-edit": () => { if (window.DL_ACTIONS["me-edit"]) window.DL_ACTIONS["me-edit"](); location.hash = "cuenta/datos"; },
     "acc-soon": (el) => { D().toast((el.dataset.id || "Esta sección") + ": próximamente", "ok"); },

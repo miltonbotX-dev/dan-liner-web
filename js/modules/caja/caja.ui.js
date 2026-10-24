@@ -190,7 +190,7 @@
         <p class="tiny cust-status" id="cj-cust-status">${custStatus()}</p>
         <label class="tiny">${cj.doc === "FACTURA" ? "Razón social" : "Cliente"}<input id="cj-cname" value="${esc(cj.cust.name)}" placeholder="${cj.doc === "FACTURA" ? "Razón social" : "Varios"}"></label>
         ${cj.doc === "FACTURA" ? `<label class="tiny">Dirección fiscal<input id="cj-caddr" value="${esc(cj.cust.address)}"></label>` : ""}
-        <label class="tiny">WhatsApp del cliente (opcional)<input id="cj-cphone" type="tel" inputmode="tel" autocomplete="off" maxlength="15" value="${esc(cj.cust.phone || "")}" placeholder="9 dígitos, ej. 931246675"></label>
+        <label class="tiny">WhatsApp del cliente (opcional)<input id="cj-cphone" type="tel" inputmode="tel" autocomplete="off" maxlength="15" value="${esc(cj.cust.phone || "")}" placeholder="9 dígitos"></label>
       </div>
       ${cj.pay === "MIXTO" ? `<div class="mix">${PAYS.map(([k, l]) => `<label class="tiny">${l}<input inputmode="decimal" data-mix="${k}" value="${cj.mix[k] ? (cj.mix[k] / 100).toFixed(2) : ""}" placeholder="0.00"></label>`).join("")}<p class="tiny" id="mix-left">${mixLeft(total)}</p></div>` : ""}
       ${needsProof() ? proofBox() : ""}
@@ -970,7 +970,7 @@
   }
   function rawbtPrint(id) {
     const s = D().byId("sales", id); if (!s) return;
-    let cols = 32; try { cols = Number(localStorage.getItem("dl-rawbt-cols")) || 32; } catch { }
+    let cols = 0; try { cols = Number(localStorage.getItem("dl-rawbt-cols")) || 0; } catch { } // v34: 0 = usa la plantilla de impresión (o 32)
     const txt = rawbtText(s, cols);
     const android = /android/i.test(navigator.userAgent);
     const url = window.DL_Print.rawbtUrl(txt, android);

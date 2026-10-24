@@ -37,7 +37,7 @@
     return `<form class="panel stack me-card me-form" data-form="me-profile" novalidate><h3 style="margin:0">Editar mis datos</h3>
       <div class="grid2"><label>Nombres<input name="nombres" autocomplete="given-name" required value="${esc(n)}"><span class="field-err">${esc(e.nombres || "")}</span></label>
       <label>Apellidos<input name="apellidos" autocomplete="family-name" value="${esc(a)}"><span class="field-err">${esc(e.apellidos || "")}</span></label></div>
-      <label>Celular (WhatsApp)<input name="phone" inputmode="tel" autocomplete="tel" placeholder="9XXXXXXXX" value="${esc(d.phone)}"><span class="field-err">${esc(e.phone || "")}</span></label>
+      <label>Celular (WhatsApp)<input name="phone" inputmode="tel" autocomplete="tel" placeholder="9 dígitos" value="${esc(d.phone)}"><span class="field-err">${esc(e.phone || "")}</span></label>
       <label>DNI (opcional)<input name="dni" inputmode="numeric" maxlength="8" placeholder="8 dígitos" value="${esc(d.dni)}"><span class="field-err">${esc(e.dni || "")}</span></label>
       ${me.err ? `<p class="alert-text">${esc(me.err)}</p>` : ""}
       <div class="row"><button class="btn ghost" type="button" data-act="me-cancel" ${me.saving ? "disabled" : ""}>Cancelar</button><button class="btn" type="submit" ${me.saving ? "disabled" : ""}>${me.saving ? "Guardando…" : "Guardar"}</button></div></form>`;
@@ -49,7 +49,7 @@
     if (nombres.length < 2) errs.nombres = "Escribe tu nombre.";
     if ((nombres + " " + apellidos).length > 120) errs.apellidos = "Demasiado largo.";
     const phone = phoneRaw ? normPhone(phoneRaw) : "";
-    if (phoneRaw && !phone) errs.phone = "9 dígitos que empiezan con 9 (ej. 931246675).";
+    if (phoneRaw && !phone) errs.phone = "9 dígitos que empiezan con 9.";
     if (g("dni") && !/^\d{8}$/.test(dni)) errs.dni = "El DNI tiene 8 dígitos.";
     me.errs = errs; me.err = "";
     if (Object.keys(errs).length) { D().render(); return; }

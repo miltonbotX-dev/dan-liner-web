@@ -34,7 +34,7 @@
     return `<option value="">Todas</option>` + list.map(([id, n]) => `<option value="${esc(id)}"${f.store === id ? " selected" : ""}>${esc(n)}</option>`).join("");
   }
   function docsPanel() {
-    if (!remote()) return `<p class="muted">Conecta la base de datos para ver comprobantes.</p>`;
+    if (!remote()) return `<p class="muted">Sin conexión con el servidor.</p>`;
     if (!canDocs()) return `<p class="muted">Solo el administrador o el contador ven los comprobantes.</p>`;
     const f = docFilters(); loadDocs();
     const d = DOC.data || {}; const sm = d.summary || {}; const items = d.items || []; const total = Number(d.total_count || 0);
@@ -52,7 +52,7 @@
         <label>Hasta<input type="date" name="to" value="${esc(f.to)}"></label>
         <label>Tipo<select name="type"><option value="">Todos</option>${Object.entries(TYPE).map(([k, v]) => `<option value="${k}"${f.type === k ? " selected" : ""}>${v}</option>`).join("")}</select></label>
         <label>Tienda<select name="store">${storeOpts(f, items)}</select></label>
-        <div class="row" style="align-items:end"><button class="btn small" type="submit">Ver</button><button class="btn small ghost" type="button" data-act="v33-docs-csv">Descargar CSV</button></div>
+        <div class="row" style="align-items:end"><button class="btn small" type="submit">Ver</button><button class="btn small ghost" type="button" data-act="v34-docs-xlsx">Descargar Excel</button><button class="btn small ghost" type="button" data-act="v34-docs-pdf">Descargar PDF</button><button class="btn small ghost" type="button" data-act="v33-docs-csv">CSV</button></div>
       </form>
       ${DOC.err ? `<p class="alert-text">${esc(DOC.err)}</p>` : ""}
       ${!DOC.loaded && !DOC.data ? `<p class="muted">Cargando comprobantes…</p>` : `
@@ -90,7 +90,7 @@
       <div class="bar${p >= 95 ? " full" : p >= 80 ? " warn" : ""}" style="--pct:${Math.max(p, 1)}%" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p)}" aria-label="${esc(title)}"><i></i></div>${note ? `<p class="tiny muted">${esc(note)}</p>` : ""}</div>`;
   }
   function sistemaPanel() {
-    if (!remote()) return `<p class="muted">Conecta la base de datos.</p>`;
+    if (!remote()) return `<p class="muted">Sin conexión con el servidor.</p>`;
     if (!isAdmin()) return `<p class="muted">Solo el administrador.</p>`;
     if (!SYS.loaded) setTimeout(() => K().once("v33sys", () => K().rpc("get_storage_usage", {}), SYS), 0);
     const u = SYS.data || {}; const db = u.database || {}; const st = u.storage || {};
@@ -99,23 +99,23 @@
     return `<section class="stack sys33">
       <h2>Espacio usado</h2>
       ${SYS.err ? `<p class="alert-text">${esc(SYS.err)}</p>` : !SYS.loaded ? `<p class="muted">Calculando…</p>` : `
-        ${meter("Base de datos", db.used_bytes, db.limit_bytes, db.percent, "Plan gratuito: 500 MB. Las fotos de productos van en Drive y no ocupan este espacio.")}
+        ${meter("Datos de la tienda", db.used_bytes, db.limit_bytes, db.percent, "Las fotos de productos van en Drive y no ocupan este espacio.")}
         ${st.available === false ? `<p class="tiny muted">El uso de archivos (fotos subidas) no está disponible.</p>` : meter("Archivos subidos", st.used_bytes, st.limit_bytes, st.percent, "Fotos de perfil y QR de pago.")}
-        ${(st.buckets || []).length ? `<div class="storage-rows">${st.buckets.map((b) => `<div><span class="tiny muted">${esc(b.bucket || b.name || b.id)}</span><b>${fmtBytes(b.bytes || b.used_bytes)}</b>${b.objects != null ? `<span class="tiny">${Number(b.objects)} archivos</span>` : ""}</div>`).join("")}</div>` : ""}
-        ${(u.top_tables || []).length ? `<details><summary>Tablas más grandes</summary><div class="storage-rows">${u.top_tables.slice(0, 10).map((t) => `<div><span class="tiny muted">${esc(t.table || t.name)}</span><b>${fmtBytes(t.total_bytes || t.bytes)}</b>${t.rows_estimate != null ? `<span class="tiny">~${Number(t.rows_estimate)} filas</span>` : ""}</div>`).join("")}</div></details>` : ""}
+        ${(st.buckets || []).length ? `<div class="storage-rows">${st.buckets.map((b) => `<div><span class="tiny muted">${esc(({ avatars: "Fotos de perfil", "payment-qr": "QR de pago", payment_qr: "QR de pago" })[b.bucket || b.name || b.id] || "Otros archivos")}</span><b>${fmtBytes(b.bytes || b.used_bytes)}</b>${b.objects != null ? `<span class="tiny">${Number(b.objects)} archivos</span>` : ""}</div>`).join("")}</div>` : ""}
         <button class="btn small ghost" type="button" data-act="v33-sys-reload">Actualizar</button>`}
       <h2>PIN de cierre de caja</h2>
       <p class="muted">Si lo activas, cada cierre de caja de <b>todas</b> las tiendas pedirá el PIN del encargado, supervisor o administrador.
         ${stores.length ? `Hoy: ${pinOn ? `activo en ${pinOn} de ${stores.length} tiendas` : "desactivado en todas las tiendas"}.` : ""}</p>
       <div class="row" style="justify-content:flex-start"><button class="btn small" type="button" data-act="v33-pin-all" data-id="1">Pedir PIN en todas</button><button class="btn small ghost" type="button" data-act="v33-pin-all" data-id="0">No pedir PIN</button></div>
       <p class="tiny muted">Antes de activarlo, cada encargado debe crear su PIN en Mi cuenta → Mi PIN de cierre.</p>
+      ${window.DL_SYS_EXTRA ? window.DL_SYS_EXTRA() : ""}
     </section>`;
   }
 
   // ---------- Roles y permisos (get_permission_catalog / set_role_permissions) ----------
   const PERM = { loaded: false, data: null, err: "", role: "", draft: null };
   function rolesPanel() {
-    if (!remote()) return `<p class="muted">Conecta la base de datos.</p>`;
+    if (!remote()) return `<p class="muted">Sin conexión con el servidor.</p>`;
     if (!isAdmin()) return `<p class="muted">Solo el administrador.</p>`;
     if (!PERM.loaded) setTimeout(() => K().once("v33perm", () => K().rpc("get_permission_catalog", {}), PERM), 0);
     if (PERM.err) return `<p class="alert-text">${esc(PERM.err)}</p>`;
@@ -131,7 +131,7 @@
       const on = ps.filter((p) => PERM.draft.has(p.code)).length;
       return `<details class="perm-group"${on ? " open" : ""}><summary><b>${esc(s.label || s.section)}</b> <span class="tiny muted">${on}/${ps.length}</span></summary>
         ${s.note ? `<p class="tiny muted">${esc(s.note)}</p>` : ""}
-        <div class="perm-list">${ps.map((p) => `<label><input type="checkbox" data-perm33="${esc(p.code)}"${PERM.draft.has(p.code) ? " checked" : ""}><span><b>${esc(p.label || p.code)}</b>${p.description ? `<small>${esc(p.description)}</small>` : ""}</span></label>`).join("")}</div></details>`;
+        <div class="perm-list">${ps.map((p) => `<div class="perm-row34"><label><input type="checkbox" data-perm33="${esc(p.code)}"${PERM.draft.has(p.code) ? " checked" : ""}><span><b>${esc(p.label || p.code)}</b>${p.description ? `<small>${esc(p.description)}</small>` : ""}</span></label>${p.description_es ? `<details class="perm-q34"><summary aria-label="¿Qué permite ${esc(p.label || p.code)}?" title="¿Qué permite?">?</summary><p class="tiny">${esc(p.description_es)}</p></details>` : ""}</div>`).join("")}</div></details>`;
     }).join("");
     return `<section class="stack roles33">
       <p class="muted">Elige un rol y marca lo que puede hacer. El administrador siempre puede todo; algunas acciones son solo suyas y no aparecen aquí.</p>
@@ -150,7 +150,7 @@
     return Object.entries(m && typeof m === "object" ? m : {}).map(([color, text]) => ({ color, text: String(text || "") }));
   }
   function textosPanel() {
-    if (!remote()) return `<p class="muted">Conecta la base de datos.</p>`;
+    if (!remote()) return `<p class="muted">Sin conexión con el servidor.</p>`;
     if (!isAdmin()) return `<p class="muted">Solo el administrador.</p>`;
     if (!TX.draft) TX.draft = { cart_note: sfv().cart_note || "", returns_note: sfv().returns_note || "", eta: etaRows() };
     const t = TX.draft;
@@ -213,11 +213,18 @@
 
   const A = window.DL_ACTIONS = window.DL_ACTIONS || {};
   A["v33-docs-csv"] = () => downloadCsv();
+  // v34: comprobantes a Excel y PDF (mismo rango y filtros que la pantalla; get_documents_export)
+  const DOC_COLS = [{ key: "fecha", label: "Fecha", width: 12 }, { key: "tipo", label: "Tipo", width: 14 }, { key: "serie_numero", label: "Serie-Número", width: 16 }, { key: "doc_cliente", label: "DNI/RUC", width: 13 },
+    { key: "cliente", label: "Cliente", width: 26 }, { key: "subtotal", label: "Subtotal", type: "money", width: 12 }, { key: "igv", label: "IGV", type: "money", width: 11 }, { key: "total", label: "Total", type: "money", width: 12 },
+    { key: "forma_pago", label: "Pago", width: 13 }, { key: "tienda", label: "Tienda", width: 18 }, { key: "estado", label: "Estado", width: 11 }];
+  async function docRows() { const rows = await K().rpc("get_documents_export", docArgs()); return (Array.isArray(rows) ? rows : []).map((r) => Object.assign({}, r, { subtotal: Number(r.subtotal || 0), igv: Number(r.igv || 0), total: Number(r.total || 0) })); }
+  A["v34-docs-xlsx"] = async () => { const list = await docRows(); if (!list.length) return D().toast("No hay comprobantes en este rango."); const f = docFilters(); window.DL_EXPORT.xlsx(`comprobantes_${f.from || "inicio"}_${f.to || "hoy"}.xlsx`, "Comprobantes", DOC_COLS, list); D().toast(`Excel listo: ${list.length} comprobantes.`); };
+  A["v34-docs-pdf"] = async () => { const list = await docRows(); if (!list.length) return D().toast("No hay comprobantes en este rango."); const f = docFilters(); const ok = list.filter((r) => !/anul/i.test(String(r.estado || ""))); window.DL_EXPORT.pdf("Comprobantes", `Del ${f.from || "inicio"} al ${f.to || "hoy"} · totales sin anulados`, DOC_COLS, list, window.DL_EXPORT.sumBy(ok, DOC_COLS)); };
   A["v33-docs-page"] = (el) => { DOC.page = Math.max(0, DOC.page + Number(el.dataset.id || 0)); D().render(); };
   A["v33-sys-reload"] = () => { SYS.loaded = false; SYS.data = null; D().render(); };
   A["v33-pin-all"] = async (el) => {
     const on = el.dataset.id === "1";
-    if (!confirm(on ? "¿Pedir PIN en el cierre de caja de TODAS las tiendas? Asegúrate de que cada encargado ya creó su PIN." : "¿Dejar de pedir PIN en el cierre de caja de todas las tiendas?")) return;
+    if (!(await window.dlgConfirm(on ? "¿Pedir PIN en el cierre de caja de TODAS las tiendas? Asegúrate de que cada encargado ya creó su PIN." : "¿Dejar de pedir PIN en el cierre de caja de todas las tiendas?"))) return;
     const r = await K().rpc("set_close_requires_pin_all", { p_on: on });
     ((D().state.data && D().state.data.stores) || []).forEach((s) => { s.close_requires_pin = on; });
     D().toast(on ? "Listo: se pedirá PIN en todas las tiendas." : "Listo: ya no se pide PIN al cerrar caja." + (r && r.updated != null ? "" : ""));
@@ -225,6 +232,16 @@
   };
   A["v33-perm-reset"] = () => { PERM.draft = null; D().render(); };
   A["v33-perm-save"] = async () => {
+    // v34 (BD v19): primero mostrar qué cambia y a cuántas personas afecta
+    let pv = null; try { pv = await K().rpc("preview_role_permission_change", { p_role: PERM.role, p_perms: Array.from(PERM.draft || []) }); } catch (e) { pv = null; }
+    if (pv) {
+      const nm = (x) => (typeof x === "string" ? x : x.label || x.code);
+      const add = pv.added || [], rem = pv.removed || [];
+      if (!add.length && !rem.length) { D().toast("No hay cambios que guardar."); return; }
+      const n = Number(pv.users_affected != null ? (Array.isArray(pv.users_affected) ? pv.users_affected.length : pv.users_affected) : 0);
+      const msg = [add.length ? "Ganará:\n" + add.map((x) => "  + " + nm(x)).join("\n") : "", rem.length ? "Perderá:\n" + rem.map((x) => "  − " + nm(x)).join("\n") : "", "Afecta a " + n + (n === 1 ? " persona." : " personas.")].filter(Boolean).join("\n\n");
+      if (!(await DL_UI.confirm(msg, { title: "Revisa los cambios antes de guardar", ok: "Guardar permisos", cancel: "Seguir editando" }))) return; // IU v34
+    }
     const r = await K().rpc("set_role_permissions", { p_role: PERM.role, p_perms: Array.from(PERM.draft || []) });
     D().toast("Permisos guardados."); PERM.loaded = false; PERM.data = null; PERM.draft = null; D().render(); return r;
   };
@@ -241,7 +258,15 @@
     if (window.DL_COLOR_ETA_REFRESH) window.DL_COLOR_ETA_REFRESH(); else sf.color_eta = eta;
     TX.draft = null; D().toast("Textos guardados."); D().render();
   };
-  A["v33-avatar-del"] = async () => { await saveProfile({ p_avatar_url: "" }); D().toast("Foto quitada."); };
+  // v34: al cambiar o quitar la foto se borra el archivo anterior (policy dl18_avatars_delete: solo la carpeta propia).
+  const oldAvatar = () => String((S().user && S().user.avatar_url) || "");
+  async function dropOldAvatar(path) {
+    try {
+      if (window.DL_V19_HOOKS && window.DL_V19_HOOKS.cleanupAvatar) { await window.DL_V19_HOOKS.cleanupAvatar(path); return; } // TODO v19: RPC de limpieza (API_V19)
+      await K().deleteOwn(path);
+    } catch { /* si falla, la limpieza de v19 lo recoge */ }
+  }
+  A["v33-avatar-del"] = async () => { const old = oldAvatar(); await saveProfile({ p_avatar_url: "" }); if (old) dropOldAvatar(old); D().toast("Foto quitada."); };
 
   document.addEventListener("submit", async (e) => {
     const form = e.target;
@@ -264,7 +289,9 @@
         D().toast("Subiendo foto…");
         const blob = await K().compress(t.files[0], 400, 200 * 1024);
         const up = await K().uploadOwn("avatar", blob);
+        const old = oldAvatar();
         await saveProfile({ p_avatar_url: up.path }); D().toast("Foto actualizada.");
+        if (old && old !== up.path) dropOldAvatar(old);
       } catch (err) { D().toast(K().human(err)); }
     }
   }, true);

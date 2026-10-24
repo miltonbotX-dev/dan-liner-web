@@ -159,7 +159,7 @@
     if (!remote() || !P || !P.product_id) return base;
     const key = P.product_id + ":" + (P.color_id || ""); const box = FX[key] || (FX[key] = { loaded: false });
     if (!box.loaded && !K().busy["fx" + key]) setTimeout(() => K().once("fx" + key, () => loadSheet(P.product_id, P.color_id), box, () => { if (box.data) box.draft = JSON.parse(JSON.stringify(box.data)); D().render(); }), 0);
-    if (!box.draft) return base + `<fieldset class="photo-box f33-box"><legend>Ficha web (BD v18)</legend><p class="tiny">${box.err ? esc(box.err) : "Cargando…"}</p></fieldset>`;
+    if (!box.draft) return base + `<fieldset class="photo-box f33-box"><legend>Ficha web</legend><p class="tiny">${box.err ? esc(box.err) : "Cargando…"}</p></fieldset>`;
     const d = box.draft; const sizes = (P.sizes || []).filter((z) => z.variant_id);
     return base + `<fieldset class="photo-box f33-box" data-fx="${esc(key)}"><legend>Ficha web: corte, piezas, cuidado y ocasiones</legend>
       ${box.err ? `<p class="alert-text" role="alert">${esc(box.err)}</p>` : ""}${box.msg ? `<p class="tiny ok">${esc(box.msg)}</p>` : ""}
@@ -288,7 +288,7 @@
   const val = (id) => { const x = document.getElementById(id); return x ? (x.type === "checkbox" ? x.checked : x.value.trim()) : null; };
 
   window.DL_ADMIN_TABS = (window.DL_ADMIN_TABS || []).concat([
-    { id: "cortes", label: "Cortes y medidas", need: ["SUPERVISOR", "ALMACENERO"], render: renderCortes },
+    { id: "cortes", label: "Cortes y medidas", need: ["SUPERVISOR", "ALMACENERO", "SASTRE"], render: renderCortes }, // v34: el sastre carga medidas
     { id: "ocasiones", label: "Ocasiones", need: ["SUPERVISOR", "ALMACENERO"], render: renderOcasiones },
   ]);
   window.DL_AFTER = (window.DL_AFTER || []).concat([() => { if (remote() && !CAT.started) loadCatalog(); }, mountTelas]);
@@ -332,7 +332,7 @@
       D().render();
     },
     "cm-del-cut": async (el) => {
-      if (!confirm("¿Eliminar este corte? Si alguna pieza lo usa, solo se desactiva.")) return;
+      if (!(await window.dlgConfirm("¿Eliminar este corte? Si alguna pieza lo usa, solo se desactiva."))) return;
       try { await K().rpc("delete_fit_cut", { p_id: Number(el.dataset.id) }); await admLists(); CM.cut = ""; CM.edit = null; CM.loaded = false; CM.msg = "Corte eliminado o desactivado."; } catch (err) { CM.err = K().human(err); }
       D().render();
     },
@@ -362,7 +362,7 @@
       D().render();
     },
     "oc-del": async (el) => {
-      if (!confirm("¿Eliminar esta ocasión?")) return;
+      if (!(await window.dlgConfirm("¿Eliminar esta ocasión?"))) return;
       try { await K().rpc("delete_occasion", { p_id: Number(el.dataset.id) }); await admLists(); OC.edit = null; OC.msg = "Ocasión eliminada."; CAT.started = false; } catch (err) { OC.err = K().human(err); }
       D().render();
     },

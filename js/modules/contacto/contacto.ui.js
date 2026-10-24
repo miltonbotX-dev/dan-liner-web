@@ -47,7 +47,7 @@
   window.DL_afterRender = () => { mountFooter(); mountFloat(); };
 
   // Admin › Contacto y redes
-  const FIELDS = [["contact_whatsapp", "WhatsApp principal", "tel", "9 dígitos, ej. 931246675"], ["contact_facebook", "Facebook", "url", "https://www.facebook.com/…"], ["contact_instagram", "Instagram", "url", "https://www.instagram.com/…"], ["contact_tiktok", "TikTok", "url", "https://www.tiktok.com/@…"], ["contact_email", "Correo de contacto", "email", "ventas@…"], ["contact_hours", "Horario de atención", "text", "Lun a Sáb 9:00–20:00 · Dom 10:00–14:00"]];
+  const FIELDS = [["contact_whatsapp", "WhatsApp principal", "tel", "9 dígitos"], ["contact_facebook", "Facebook", "url", "https://www.facebook.com/…"], ["contact_instagram", "Instagram", "url", "https://www.instagram.com/…"], ["contact_tiktok", "TikTok", "url", "https://www.tiktok.com/@…"], ["contact_email", "Correo de contacto", "email", "ventas@…"], ["contact_hours", "Horario de atención", "text", "Lun a Sáb 9:00–20:00 · Dom 10:00–14:00"]];
   function renderContacto() {
     if (!D().isAdmin()) return `<p class="muted">Solo el administrador cambia el contacto y las redes.</p>`;
     const c = sf(); const stores = D().state.pubStores || [];

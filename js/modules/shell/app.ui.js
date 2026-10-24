@@ -1,8 +1,11 @@
 (function () {
   const PAY = { CASH: "Efectivo", YAPE: "Yape", PLIN: "Plin", CARD: "Tarjeta", TRANSFER: "Transferencia" };
-  const ROLES = ["ADMIN", "SUPERVISOR", "VENDEDOR", "ALMACENERO", "CONTADOR", "PENDIENTE"];
+  const ROLES = ["ADMIN", "SUPERVISOR", "ENCARGADO", "VENDEDOR", "CAJERO", "ALMACENERO", "SASTRE", "REPARTIDOR", "MARKETING", "CONTADOR", "PENDIENTE"]; // v34 (BD v19): roles nuevos; DUENO se asigna solo
   const PERMS = ["CUADRE"];
-  const ROLE_LABEL = { CUADRE: "Cuadrar caja", ADMIN: "Administrador", SUPERVISOR: "Supervisor", VENDEDOR: "Vendedor", CAJERO: "Cajero", ALMACENERO: "Almacenero", CONTADOR: "Contador", PENDIENTE: "Pendiente" };
+  const ROLE_LABEL = { CUADRE: "Cuadrar caja", ADMIN: "Administrador", SUPERVISOR: "Supervisor", VENDEDOR: "Vendedor", CAJERO: "Cajero", ALMACENERO: "Almacenero", CONTADOR: "Contador", PENDIENTE: "Pendiente", DUENO: "Dueño", ENCARGADO: "Encargado de tienda", SASTRE: "Sastre", REPARTIDOR: "Repartidor", MARKETING: "Marketing" };
+  // v34: equivalencias para mostrar pantallas (la BD decide los permisos reales)
+  const ROLE_ALIAS = { DUENO: ["ADMIN"], ENCARGADO: ["VENDEDOR", "CAJERO"] };
+  const expandRoles = (list) => { const out = new Set(list); list.forEach((r) => (ROLE_ALIAS[r] || []).forEach((x) => out.add(x))); return [...out]; };
   const state = { data: {}, user: null };
   const ui = {
     filter: "todas",
@@ -218,12 +221,12 @@
     return rolesOf(fresh || state.user);
   }
   function allow(list) {
-    const current = myRoles();
+    const current = expandRoles(myRoles());
     if (!current.length) return false;
     if (current.includes("ADMIN")) return true;
     return list.some((r) => current.includes(r));
   }
-  function isAdmin() { return myRoles().includes("ADMIN"); }
+  function isAdmin() { const r = myRoles(); return r.includes("ADMIN") || r.includes("DUENO"); }
   function page() {
     const raw = (location.hash || "#coleccion").replace("#", "");
     const [name, sub] = raw.split("/");
@@ -566,7 +569,7 @@
     const lines = cartLines(); if (!lines.length) throw new Error("Tu carrito está vacío");
     const extra = [c.name ? "Nombre: " + c.name : "", c.dni ? "DNI: " + c.dni : "", c.mode === "delivery" ? "Dirección: " + c.address : "", c.notes || ""].filter(Boolean).join(" · ").slice(0, 500);
     const phone = normPhone(c.phone);
-    if (!phone) { ui.step = "datos"; ui.phoneErr = "Revisa tu celular: 9 dígitos que empiezan con 9 (ej. 931246675)."; render(); throw new Error(ui.phoneErr); }
+    if (!phone) { ui.step = "datos"; ui.phoneErr = "Revisa tu celular: 9 dígitos que empiezan con 9."; render(); throw new Error(ui.phoneErr); }
     if (state.user && !normPhone(state.user.phone) && Store.v2api.saveMyPhone) await Store.v2api.saveMyPhone(phone).catch(() => {});
     const r = await Store.v2api.createOrder({ storeId: c.store, items: lines.map(({ line, p }) => ({ variant_id: p.variant_id || p.id, qty: line.qty })), delivery: c.mode === "delivery" ? "delivery" : "recojo", phone, notes: extra });
     ui.lastOrder = r; ui.cart = []; saveCart(); await reload(); render(); window.scrollTo(0, 0);
@@ -637,7 +640,7 @@
           <button class="btn ${up ? "ghost" : ""}" type="button" data-act="auth-mode" data-id="in">Ya tengo cuenta</button>
         </div>
         <form novalidate class="stack md-form" data-form="auth">
-          ${up ? `<label class="md-field">Nombre de usuario<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-z0-9_.]{3,30}" minlength="3" maxlength="30" required placeholder="ej. juan.perez"><span class="tiny" id="user-check"></span></label><label>Nombre<input name="name" autocomplete="name" required></label><label>Celular o WhatsApp<input name="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="15" required placeholder="9 dígitos, ej. 931246675" aria-describedby="su-phone-err"></label><p class="field-error tiny" id="su-phone-err" role="alert" ${ui.suPhoneErr ? "" : "hidden"}>${esc(ui.suPhoneErr || "")}</p><label>DNI (opcional)<input name="dni" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" title="8 dígitos"></label>` : ""}
+          ${up ? `<label class="md-field">Nombre de usuario<input name="username" autocomplete="username" autocapitalize="none" spellcheck="false" pattern="[a-z0-9_.]{3,30}" minlength="3" maxlength="30" required placeholder="ej. juan.perez"><span class="tiny" id="user-check"></span></label><label>Nombre<input name="name" autocomplete="name" required></label><label>Celular o WhatsApp<input name="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="15" required placeholder="9 dígitos" aria-describedby="su-phone-err"></label><p class="field-error tiny" id="su-phone-err" role="alert" ${ui.suPhoneErr ? "" : "hidden"}>${esc(ui.suPhoneErr || "")}</p><label>DNI (opcional)<input name="dni" inputmode="numeric" maxlength="8" pattern="[0-9]{8}" title="8 dígitos"></label>` : ""}
           ${up ? `<label>Correo<input name="email" type="email" autocomplete="email" required></label>` : `<label>Usuario, correo o celular<input name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>`}
           <label>Contraseña<input name="password" type="password" minlength="8" autocomplete="${up ? "new-password" : "current-password"}" required></label>
           <button class="btn full md-tonal" type="submit">${up ? "Crear y entrar" : "Entrar"}</button>
@@ -728,13 +731,17 @@
   window.DL_ADMIN_TABS = (window.DL_ADMIN_TABS || []).concat([{ id: "pedidos", label: "Pedidos web", need: ["SUPERVISOR", "VENDEDOR", "CAJERO"], render: () => ordersPanel(null) }]);
   function renderAdmin() {
     // v29: vendedor/cajero entran solo a sus pestañas (Pedidos web, Separados, Clientes) desde Gestión en el menú lateral
-    const counter = !allow(["SUPERVISOR", "ALMACENERO"]) && allow(["VENDEDOR", "CAJERO"]);
+    // v34: también Sastre, Repartidor y Marketing entran solo a sus pestañas
+    const LIMITED = ["VENDEDOR", "CAJERO", "SASTRE", "REPARTIDOR", "MARKETING", "CONTADOR"];
+    const mineX = expandRoles(myRoles());
+    const extMine = (t) => t.need && t.need.some((r) => LIMITED.includes(r) && mineX.includes(r));
+    const counter = !allow(["SUPERVISOR", "ALMACENERO"]) && (allow(["VENDEDOR", "CAJERO"]) || (window.DL_ADMIN_TABS || []).some(extMine));
     const block = counter ? "" : denied(["SUPERVISOR", "ALMACENERO"]);
     if (block) return block;
     let tabs = [["inicio", "Inicio / Colección"], ["resumen", "Resumen"], ["ventas", "Ventas"], ["products", "Piezas"], ["categories", "Categorías"], ["sizes", "Tallas"], ["brands", "Marcas"], ["stores", "Tiendas"], ["warehouses", "Almacenes"], ["cash_registers", "Cajas"], ["document_series", "Series"], ["panel", "Panel de tienda"], ["reporte", "Reporte general"], ["stock", "Stock"], ["customers", "Clientes"], ["promos", "Promociones"], ["expenses", "Gastos"], ["partners", "Mayoristas"], ["staff", "Equipo"], ["fabrics", "Telas"], ["colors", "Colores"]];
     (window.DL_ADMIN_TABS || []).forEach((t) => { if (!t.need || allow(t.need)) tabs.push([t.id, t.label]); });
     if (counter) {
-      tabs = tabs.filter(([id]) => id === "customers" || (window.DL_ADMIN_TABS || []).some((t) => t.id === id && t.need && allow(t.need) && !t.need.every((r) => r === "SUPERVISOR" || r === "ADMIN" || r === "ALMACENERO")));
+      tabs = tabs.filter(([id]) => (id === "customers" && allow(["VENDEDOR", "CAJERO"])) || (window.DL_ADMIN_TABS || []).some((t) => t.id === id && extMine(t)));
       if (!tabs.some(([id]) => id === ui.admin)) ui.admin = tabs[0] ? tabs[0][0] : "pedidos";
     } else if (!isAdmin() && !allow(["SUPERVISOR"]) && allow(["ALMACENERO"])) {
       tabs = tabs.filter(([id]) => id === "products" || id === "stock" || (window.DL_ADMIN_TABS || []).some((t) => t.id === id));
@@ -756,12 +763,12 @@
     else if (SPECS[ui.admin]) body = renderCrud(ui.admin);
     else body = renderResumen();
     const GROUPS = [
-      ["Ventas", ["resumen", "ventas", "comprobantes", "pedidos", "customers", "promos", "adelantos", "cajas", "consignacion"]],
-      ["Productos", ["products", "categories", "sizes", "fabrics", "cortes", "ocasiones", "colors", "brands", "stock", "prestados", "traslados", "produccion", "recepcion", "partners"]],
+      ["Ventas", ["resumen", "ventas", "comprobantes", "pedidos", "pagos", "reparto", "customers", "promos", "adelantos", "cajas", "consignacion"]],
+      ["Productos", ["products", "categories", "sizes", "fabrics", "telavar", "cortes", "ocasiones", "colors", "brands", "stock", "prestados", "traslados", "produccion", "recepcion", "partners"]],
       ["Tiendas", ["stores", "warehouses", "cash_registers", "document_series", "panel"]],
       ["Personal", ["staff", "roles", "asistencia"]],
-      ["Configuración", ["inicio", "textos", "personalizacion", "legal", "etiquetas", "sistema", "expenses"]],
-      ["Reportes", ["reporte"]],
+      ["Configuración", ["inicio", "textos", "personalizacion", "legal", "etiquetas", "plantillas", "avisos", "sistema", "expenses"]],
+      ["Reportes", ["reporte", "analitica"]],
     ];
     const label = Object.fromEntries(tabs);
     const used = new Set();
@@ -923,6 +930,7 @@
         <label>Tienda<select data-vf="store"><option value="">Todas</option>${stores.map((s) => `<option value="${esc(s.id)}" ${s.id === vf.store ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
         <label>Vendedor<select data-vf="seller"><option value="">Todos</option>${sellers.map((s) => `<option ${s === vf.seller ? "selected" : ""}>${esc(s)}</option>`).join("")}</select></label>
         <div class="row" style="gap:6px;flex-wrap:wrap">${[[7, "7 días"], [30, "30 días"], [90, "90 días"]].map(([d, l]) => `<button class="chip" type="button" data-act="vf-range" data-id="${d}">${l}</button>`).join("")}</div>
+        <div class="row export-row" style="gap:6px;flex-wrap:wrap"><button class="btn small ghost" type="button" data-act="v34-sales-xlsx">Descargar Excel</button><button class="btn small ghost" type="button" data-act="v34-sales-pdf">Descargar PDF</button></div>
       </form>
       <div class="stats">
         <article class="stat"><span class="tiny">Vendido</span><b>${moneyHtml(total)}</b>${pct(total, prevTotal)}</article>
@@ -1382,7 +1390,7 @@
       : canCreate ? `<button class="btn" type="button" data-act="new" data-table="staff" style="margin-bottom:12px">+ Nuevo usuario</button>` : "";
     return `${form}<div class="stack">${people.map((p) => { const ss = sellerSales(p); const lsr = ls && ls[p.id]; return `<button type="button" class="panel person ${p.is_active === false ? "off" : ""}" data-act="staff-open" data-id="${esc(p.id)}">
         <span class="avatar">${esc(String(p.full_name || "?").trim().charAt(0).toUpperCase())}</span>
-        <span style="flex:1;min-width:0;text-align:left"><b>${esc(p.full_name)}</b><br><span class="tiny">${esc((rolesOf(p).length ? rolesOf(p) : [p.role]).map((r) => ROLE_LABEL[r] || r).join(" + "))} · ${esc(p.store_id ? nameOf("stores", p.store_id) : "Sin tienda")}${p.is_active === false ? " · Desactivado" : ""}</span></span>
+        <span style="flex:1;min-width:0;text-align:left"><b>${esc(p.full_name)}</b>${window.DL_OWNER_BADGE ? window.DL_OWNER_BADGE(p.id) : ""}<br><span class="tiny">${esc((rolesOf(p).length ? rolesOf(p) : [p.role]).map((r) => ROLE_LABEL[r] || r).join(" + "))} · ${esc(p.store_id ? nameOf("stores", p.store_id) : "Sin tienda")}${p.is_active === false ? " · Desactivado" : ""}</span></span>
         <span class="tiny" style="text-align:right">${lsr ? lsr.sales_count : ss.length} ventas<br>${soles(lsr ? lsr.sales_cents : sumCents(ss, "total_cents"))}</span></button>`; }).join("") || `<p class="muted">Nadie en el equipo.</p>`}</div>
       <p class="tiny" style="margin-top:8px">Administrador: todo. Supervisor: opera la casa. Vendedor: caja. Almacenero: taller, piezas y stock. Pendiente: sin acceso.</p>`;
   }
@@ -1395,10 +1403,14 @@
     const stores = (state.data.stores || []).filter((s) => s.is_active !== false);
     const admin = isAdmin();
     const me = state.user && state.user.id === p.id;
+    // v34 (BD v19): al dueño nadie más lo borra, desactiva ni le cambia roles; a otros admins solo el dueño
+    const ownerP = window.DL_IS_OWNER_ID ? window.DL_IS_OWNER_ID(p.id) : false;
+    const iAmOwner = window.DL_IS_OWNER_ID ? window.DL_IS_OWNER_ID(state.user && state.user.id) : false;
+    const locked = !me && (ownerP || (rolesOf(p).includes("ADMIN") && !iAmOwner));
     return `<button class="btn ghost small" type="button" data-act="staff-back">← Equipo</button>
       <div class="panel person" style="margin:12px 0"><span class="avatar">${esc(String(p.full_name || "?").charAt(0).toUpperCase())}</span>
-        <span style="flex:1"><b>${esc(p.full_name)}</b><br><span class="tiny">${esc(p.email || "")} · alta ${esc(localDay(p.created_at) || "—")}</span></span>
-        ${p.is_active === false ? `<span class="badge">Desactivado</span>` : `<span class="badge ok">Activo</span>`}${window.DL_PW_BTN && p.role !== "ADMIN" ? window.DL_PW_BTN(p.id, p.email, p.full_name) : ""}</div>
+        <span style="flex:1"><b>${esc(p.full_name)}</b>${window.DL_OWNER_BADGE ? window.DL_OWNER_BADGE(p.id) : ""}<br><span class="tiny">${esc(p.email || "")} · alta ${esc(localDay(p.created_at) || "—")}</span></span>
+        ${p.is_active === false ? `<span class="badge">Desactivado</span>` : `<span class="badge ok">Activo</span>`}${window.DL_PW_BTN && p.role !== "ADMIN" && !locked ? window.DL_PW_BTN(p.id, p.email, p.full_name) : ""}</div>
       <div class="stats">
         <article class="stat"><span class="tiny">Vendido (total)</span><b>${moneyHtml(total)}</b></article>
         <article class="stat"><span class="tiny">Ventas</span><b><span class="num">${ss.length}</span></b></article>
@@ -1408,7 +1420,9 @@
       <div class="panel"><p class="kicker">Tendencia · 60 días</p><div class="chart-box"><canvas id="ch-staff" data-id="${esc(p.id)}"></canvas></div></div>
       <div class="split" style="margin-top:16px">
         <div class="panel"><p class="kicker">Lo que más vende</p>${bars(top, (r) => r.key, (r) => r.units, (r) => r.units + " uds · " + soles(r.cents))}</div>
-        ${admin ? `<div class="stack">
+        ${admin && locked ? `<div class="panel stack"><p class="muted">${ownerP ? "Es el dueño de la tienda: nadie más puede cambiar sus roles, desactivarlo ni eliminarlo." : "Es administrador: solo el dueño puede cambiar sus roles o permisos."}</p></div>` : ""}
+        ${admin && !locked ? `<div class="stack">
+          ${window.DL_USER_PERMS_HTML ? window.DL_USER_PERMS_HTML(p) : ""}
           ${managedHtml(p)}
           <form novalidate class="panel stack" data-form="staff-edit" data-id="${esc(p.id)}"><h3>Rol y tienda</h3>
             <div class="two"><label>Rol principal<select name="role">${ROLES.map((r) => `<option value="${r}" ${r === p.role ? "selected" : ""}>${esc(ROLE_LABEL[r])}</option>`).join("")}</select></label>
@@ -1824,6 +1838,7 @@
       render(); return;
     }
     if (action === "open") return openProduct(el.dataset.id);
+    if (action === "pd-color") { const k = el.dataset.id; if (!k || !ui.detail || k === ui.detail.key || !window.DL_COLORS) return; const cur = detailVariant(); const nv = window.DL_COLORS.variantIn(k, cur && cur.size_label); if (!nv) return; const sh = sheetEl(); const top = sh.scrollTop; ui.detail = { key: k, variant: nv.id, slide: 0 }; (ui.cardSel = ui.cardSel || {})[k] = nv.id; drawDetail(); sh.scrollTop = top; return; } // v34: cambiar color sin cerrar la ficha
     if (action === "pd-size") { if (el.disabled) return; ui.detail.variant = el.dataset.id; ui.detail.slide = 0; (ui.cardSel = ui.cardSel || {})[ui.detail.key] = el.dataset.id; drawDetail(); return; }
     if (action === "card-size") {
       if (el.disabled) return;
@@ -1977,6 +1992,7 @@
         <h2>${esc(v.name)}</h2>
         <p class="tiny">${esc([v.fabric, v.color].filter(Boolean).join(" · "))}</p>
         <div class="row"><strong class="price">${soles(priced.unit)}</strong>${priced.offer ? `<s class="tiny">${soles(priced.list)}</s>` : ""}</div>
+        ${window.DL_COLORS ? window.DL_COLORS.html(v, d.key, "pd-color") : ""}
         ${vars.length ? `<div class="stack opt-group"><span class="tiny">Talla</span><div class="size-pick" role="group" aria-label="Talla">${vars.map((x) => { const off = stockOf(x) <= 0; return `<button type="button" class="chip opt ${x.id === v.id ? "on" : ""} ${off ? "off" : ""}" data-act="pd-size" data-id="${esc(x.id)}" ${off ? "disabled title=\"Agotado\"" : ""} aria-pressed="${x.id === v.id}">${esc(x.size_label || "Única")}</button>`; }).join("")}</div></div>` : ""}
         ${v.description ? `<p>${esc(v.description)}</p>` : ""}
         <p class="tiny">Código ${esc(v.sku || "")} · ${soldOut ? "Agotado" : "Disponible"}</p>
@@ -2061,7 +2077,7 @@
       const c = ui.checkout || (ui.checkout = {});
       body = `<form novalidate class="stack" data-form="checkout-datos">
         <label>Nombre<input name="name" required value="${esc(c.name || (state.user && state.user.full_name) || "")}"></label>
-        <label>Celular o WhatsApp<input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="15" required placeholder="9 dígitos, ej. 931246675" aria-describedby="phone-err" value="${esc(c.phone || (state.user && state.user.phone) || "")}"></label>
+        <label>Celular o WhatsApp<input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="15" required placeholder="9 dígitos" aria-describedby="phone-err" value="${esc(c.phone || (state.user && state.user.phone) || "")}"></label>
         <p class="field-error tiny" id="phone-err" role="alert" ${ui.phoneErr ? "" : "hidden"}>${esc(ui.phoneErr || "")}</p>
         <label>DNI (opcional)<input name="dni" inputmode="numeric" maxlength="8" value="${esc(c.dni || "")}"></label>
         ${sum}<div class="row"><button class="btn ghost" type="button" data-act="step" data-id="carrito">Atrás</button><button class="btn" type="submit">Continuar</button></div></form>`;
@@ -2124,7 +2140,7 @@
       const password = form.elements.password.value;
       if (ui.authMode === "up") {
         const phone = normPhone(form.elements.phone.value); const errEl = document.getElementById("su-phone-err");
-        if (!phone) { const msg = "Revisa tu celular: 9 dígitos que empiezan con 9 (ej. 931246675)."; if (errEl) { errEl.textContent = msg; errEl.hidden = false; } form.elements.phone.focus(); return; }
+        if (!phone) { const msg = "Revisa tu celular: 9 dígitos que empiezan con 9."; if (errEl) { errEl.textContent = msg; errEl.hidden = false; } form.elements.phone.focus(); return; }
         if (errEl) errEl.hidden = true; form.elements.phone.value = phone;
         const r = await Store.signUp({ name, username: form.elements.username.value, email: form.elements.email.value, password, phone, dni: form.elements.dni ? form.elements.dni.value : "" });
         if (r && r.pending) { ui.authMode = "check-email"; ui.pendingEmail = r.email; render(); window.scrollTo(0, 0); return; }
@@ -2139,7 +2155,7 @@
     if (kind === "checkout-datos") {
       const el = form.elements; const phone = normPhone(el.phone.value);
       const err = document.getElementById("phone-err");
-      if (!phone) { ui.phoneErr = "Revisa tu celular: 9 dígitos que empiezan con 9 (ej. 931246675)."; if (err) { err.hidden = false; err.textContent = ui.phoneErr; } el.phone.focus(); return; }
+      if (!phone) { ui.phoneErr = "Revisa tu celular: 9 dígitos que empiezan con 9."; if (err) { err.hidden = false; err.textContent = ui.phoneErr; } el.phone.focus(); return; }
       ui.phoneErr = ""; ui.checkout = Object.assign(ui.checkout || {}, { name: el.name.value.trim(), phone, dni: el.dni.value.trim() });
       return goStep("entrega");
     }
@@ -2375,7 +2391,7 @@
   window.DL = {
     state, ui, Store, PAY, ROLES, PERMS, ROLE_LABEL, render, reload, toast, moneyHtml, esc, soles, nid, localDay, byId, nameOf, allow, isAdmin, myRoles, rolesOf,
     icon, ordersPanel, priceOf, stockIn, stockOf, applyDelta, nextNumber, safeSrc, driveDirect, table, refField, bars, group, sumCents, completedSales, denied, visibleProducts,
-    openSession: () => openSession(), detailVariant: () => detailVariant(),
+    openSession: () => openSession(), detailVariant: () => detailVariant(), salesForExport: () => filteredSales(true), salesFilterNow: () => salesFilter(), // v34: exportar ventas
     cartLines, cartSum, saveCart, normPhone, renderPedidoBase: () => renderPedido(), goStep: (n) => goStep(n), orderSt: ORDER_ST,
     productKey, productGroups, bySize, groupImages, cardHtml, pickVariant, myOrdersHtml, isClient, page, closeSheet: () => { const sh = document.getElementById("sheet"); if (sh && sh.open) sh.close(); },
     sell: (order) => window.DLCaja.sell(order),

@@ -122,6 +122,9 @@ window.DL_DEFAULT_SIZES = function () {
     if (/invalid login/i.test(text)) return "Correo o contraseña incorrectos";
     if (/already registered|already been registered/i.test(text)) return "Ese correo ya está registrado";
     if (/password/i.test(text) && /least|short|weak/i.test(text)) return "La contraseña necesita 8 caracteres";
+    // v34: no mostrar detalles internos del servidor
+    if (/permission denied for (function|table|relation|sequence|schema)/i.test(text)) return "No se pudo completar por un permiso del servidor. Avisa al administrador.";
+    if (/jwt expired|invalid jwt|jwt malformed/i.test(text)) return "Tu sesión venció. Vuelve a entrar.";
     if (/row-level security|violates row-level/i.test(text)) return "Tu rol no puede modificar eso. El administrador debe asignarte permiso.";
     if (/foreign key/i.test(text)) return "No se puede borrar: otros registros todavía lo usan. Archívalo.";
     if (/duplicate key|unique/i.test(text)) return "Ya existe un registro con ese código";

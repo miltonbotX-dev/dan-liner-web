@@ -8,7 +8,7 @@
   const todayLima = () => new Date(Date.now() - 5 * 3600e3).toISOString().slice(0, 10);
   const fday = (d) => (d ? new Date(String(d).slice(0, 10) + "T12:00:00").toLocaleDateString("es-PE", { day: "numeric", month: "short" }).replace(".", "") : "");
   const cssUrl = (u) => `url("${String(u || "").replace(/["\\\n\r]/g, encodeURIComponent)}")`;
-  const human = (e) => { const t = String((e && e.message) || e || ""); if (/could not find the function|schema cache/i.test(t)) return "Esta función aún no está activa en la base de datos."; if (/permission denied|row-level|42501/i.test(t)) return "Tu cuenta no tiene permiso para esto."; if (/failed to fetch|network/i.test(t)) return "Sin conexión. Intenta de nuevo."; return t || "No se pudo completar."; };
+  const human = (e) => { const t = String((e && e.message) || e || ""); if (/could not find the function|schema cache/i.test(t)) return "Esta función aún no está disponible."; if (/permission denied|row-level|42501/i.test(t)) return "Tu cuenta no tiene permiso para esto."; if (/failed to fetch|network/i.test(t)) return "Sin conexión. Intenta de nuevo."; return t || "No se pudo completar."; };
   // Imagen → Blob webp (o jpeg) que quepa en maxBytes, reduciendo lado y calidad.
   async function compress(file, maxSide, maxBytes) {
     if (!file || !/^image\//.test(file.type || "")) throw new Error("Elige una imagen.");
@@ -38,8 +38,16 @@
     const file = String(name || "img").replace(/[^A-Za-z0-9._-]/g, "-").slice(0, 60) + "-" + Date.now() + "." + ext;
     const path = st.user.id + "/" + file;
     const res = await fetch(st.cfg.url + "/storage/v1/object/avatars/" + path, { method: "POST", headers: { apikey: st.cfg.key, Authorization: "Bearer " + st.token.access_token, "Content-Type": blob.type, "x-upsert": "false" }, body: blob });
-    if (!res.ok) { const t = await res.json().catch(() => ({})); throw new Error("No se pudo subir la imagen: " + (t.message || t.error || res.status)); }
+    if (!res.ok) { const t = await res.json().catch(() => ({})); throw new Error(/size|large|exceed/i.test(String(t.message || t.error || "")) ? "La imagen es muy pesada; prueba con otra." : "No se pudo subir la imagen. Intenta de nuevo."); }
     return { path: "avatars/" + path, url: st.cfg.url + "/storage/v1/object/public/avatars/" + path };
+  }
+  // v34: borra un archivo propio de avatars/<uid>/avatar-*. Nunca toca QR, telas ni archivos de otros.
+  async function deleteOwn(path) {
+    const st = S(); if (!st || !st.token || !st.user) return false;
+    const rel = String(path || "").replace(/^\/+/, "").replace(/^avatars\//, "");
+    if (!rel.startsWith(st.user.id + "/") || !/^[^/]+\/avatar-[A-Za-z0-9._-]+\.(webp|jpe?g)$/i.test(rel)) return false;
+    const res = await fetch(st.cfg.url + "/storage/v1/object/avatars/" + rel, { method: "DELETE", headers: { apikey: st.cfg.key, Authorization: "Bearer " + st.token.access_token } });
+    return res.ok;
   }
   const publicUrl = (p) => { const v = String(p || ""); if (!v) return ""; if (/^https?:\/\//i.test(v)) return v; const st = S(); return st && st.cfg ? st.cfg.url + "/storage/v1/object/public/" + v.replace(/^\/+/, "") : ""; };
   const rpc = (n, p) => S().rpc(n, p || {});
@@ -49,5 +57,5 @@
     try { box.data = await fn(); box.err = ""; } catch (e) { box.err = human(e); }
     busy[key] = false; box.loaded = true; if (after) after(); else if (D()) D().render();
   }
-  window.DL33 = { norm, todayLima, fday, cssUrl, human, compress, uploadOwn, publicUrl, rpc, once, busy };
+  window.DL33 = { norm, todayLima, fday, cssUrl, human, compress, uploadOwn, deleteOwn, publicUrl, rpc, once, busy };
 })();

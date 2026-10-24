@@ -111,7 +111,7 @@
       if (String(name || "").trim().length < 2) throw new Error("Escribe tu nombre");
       if (!/^[a-z0-9_.]{3,30}$/.test(username)) throw new Error("El usuario debe tener de 3 a 30 letras, números, punto o guion bajo");
       if (!email.includes("@")) throw new Error("Escribe un correo válido");
-      if (!/^9\d{8}$/.test(phone)) throw new Error("Escribe tu celular: 9 dígitos que empiezan con 9 (ej. 931246675)");
+      if (!/^9\d{8}$/.test(phone)) throw new Error("Escribe tu celular: 9 dígitos que empiezan con 9");
       if (dni && !/^\d{8}$/.test(String(dni).trim())) throw new Error("El DNI debe tener 8 dígitos");
       if (!password || password.length < 8) throw new Error("La contraseña necesita 8 caracteres");
       if (this.v2api && !(await this.v2api.usernameAvailable(username))) throw new Error("Ese nombre de usuario ya está en uso");

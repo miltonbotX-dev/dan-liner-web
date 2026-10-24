@@ -65,7 +65,7 @@
         if (s && rq) Object.assign(s, { yape_qr_url: rq.yape_qr_url || "", plin_qr_url: rq.plin_qr_url || "" });
         delete st.qr[id + ":yape"]; delete st.qr[id + ":plin"];
         V().toast("Números y QR guardados");
-      } catch (e) { V().toast(V().missing(e) ? "Esta función aún no está activa en la base de datos." : (String(e.message || "").includes("inválido") || String(e.message || "").includes("Solo el administrador") || String(e.message || "").startsWith("QR de") ? e.message : V().human(e)), "error"); }
+      } catch (e) { V().toast(V().missing(e) ? "Esta función aún no está disponible." : (String(e.message || "").includes("inválido") || String(e.message || "").includes("Solo el administrador") || String(e.message || "").startsWith("QR de") ? e.message : V().human(e)), "error"); }
       st.saving = ""; mount();
     },
   });

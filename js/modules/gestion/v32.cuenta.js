@@ -33,7 +33,7 @@
     return out ? `<div class="stack" style="margin:12px 0">${out}</div>` : "";
   };
   function renderPin() {
-    if (!X().on()) return `<p class="muted">Disponible con la actualización de la base (v17).</p>`;
+    if (!X().on()) return `<p class="muted">Esta opción aún no está disponible.</p>`;
     if (!isManager()) return `<p class="muted">Solo el encargado de tienda, supervisor o administrador tiene PIN de cierre.</p>`;
     if (!P.loaded) setTimeout(() => V().once("v17pin", () => X().call("hasMyPin", {}).catch(() => null), P), 0);
     const has = P.data === true || !!(P.data && P.data.has_pin);

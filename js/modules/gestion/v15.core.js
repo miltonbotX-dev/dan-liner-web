@@ -22,7 +22,7 @@
   // Carga una sola vez por clave; el resultado queda en box.data y el error (en español) en box.err.
   async function once(key, fn, box) {
     if (busy[key]) return; busy[key] = true;
-    try { box.data = await fn(); box.err = ""; } catch (e) { box.err = missing(e) ? "Esta función aún no está activa en la base de datos." : human(e); }
+    try { box.data = await fn(); box.err = ""; } catch (e) { box.err = missing(e) ? "Esta función aún no está disponible." : human(e); }
     busy[key] = false; box.loaded = true; rerender();
   }
   window.DL_V15 = { esc, rpc, money, plain, num, fdate, hhmm, human, missing, stores, rerender, toast, once, busy, limaDate, remote };

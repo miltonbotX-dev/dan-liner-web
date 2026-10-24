@@ -1,0 +1,29 @@
+/* v34 · estilos mínimos y funcionales (IU puede reemplazarlos; no toca los bloques de IU en app.css). */
+.color-group .color-pick{display:flex;flex-wrap:wrap;gap:8px}
+.color-opt{display:inline-flex;align-items:center;gap:6px}
+.color-opt .sw{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.25);display:inline-block;flex:none}
+.color-opt[aria-checked="true"]{outline:2px solid currentColor;outline-offset:1px}
+.color-opt.off{opacity:.5}
+.notif-card,.guia-card{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.notif-card small,.guia-card small{display:block}
+.guia34 details>summary{cursor:pointer;padding:4px 0}
+.guia34 ol{margin:0;padding-left:20px}
+.export-row{margin-top:8px}
+/* v34 · BD v19: dueño, permisos con ayuda, pagos, avisos, plantillas, variantes desde la tela (mínimos; IU puede reemplazarlos). */
+.owner-chip34{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border-radius:999px;font-size:.78em;font-weight:700;color:var(--owner,#B8860B);border:1px solid var(--owner,#B8860B);background:color-mix(in srgb,var(--owner,#B8860B) 12%,transparent);vertical-align:middle;white-space:nowrap}
+.owner-me34{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0}
+.perm-row34{display:flex;align-items:flex-start;gap:8px;justify-content:space-between}
+.perm-row34>label{flex:1;min-width:0}
+.perm-q34{flex:none;position:relative}
+.perm-q34>summary{list-style:none;cursor:pointer;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:1px solid currentColor;opacity:.7}
+.perm-q34>summary::-webkit-details-marker{display:none}
+.perm-q34[open]>summary{opacity:1}
+.perm-q34>p{position:absolute;right:0;top:28px;z-index:5;width:min(260px,70vw);margin:0;padding:8px 10px;border-radius:8px;background:var(--card,#fff);color:inherit;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+.proof34{max-width:min(320px,100%);max-height:420px;border-radius:8px;display:block}
+.tpl-preview34{font:12px/1.35 ui-monospace,Menlo,Consolas,monospace;white-space:pre;overflow:auto;background:#fff;color:#111;padding:10px;border-radius:6px;max-height:420px}
+.sw34{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.25);vertical-align:middle}
+.an34 td.n,.an34 th.n{text-align:right;font-variant-numeric:tabular-nums}
+.an-filters label{min-width:130px}
+
+/* v34 integración: el selector propio no debe desbordar columnas estrechas (.two/.grid3 en móvil) */
+.dl-sel{min-width:0;max-width:100%}

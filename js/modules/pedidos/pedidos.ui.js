@@ -77,7 +77,7 @@
       </div>
       ${c.delivery === "ENVIO" ? geoHtml : `<label>Tienda donde recoges<select name="storeId" required>${shops.map((s) => `<option value="${esc(s.id)}" ${String(c.storeId) === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</select></label>
         ${shop && shop.address ? `<p class="tiny store-address">${D().icon("pin", 14)} ${esc(shop.address)}</p>` : ""}`}
-      <label>Celular de contacto<input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="15" placeholder="9 dígitos, ej. 931246675" value="${esc(c.phone || "")}"></label>
+      <label>Celular de contacto<input name="phone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="15" placeholder="9 dígitos" value="${esc(c.phone || "")}"></label>
       <label>Nota para la tienda (opcional)<textarea name="nota" maxlength="500" rows="2">${esc(c.nota || "")}</textarea></label>
       ${c.err ? `<p class="alert-text" role="alert">${esc(c.err)}</p>` : ""}
       ${itemsSummary()}
@@ -181,7 +181,7 @@
       if (!c.departamento || !c.provincia || !c.distrito) return "Elige departamento, provincia y distrito.";
       if (String(c.direccion || "").length < 5) return "Escribe la dirección exacta.";
     } else if (!c.storeId) return "Elige la tienda donde recogerás.";
-    if (!D().normPhone(c.phone)) return "Revisa tu celular: 9 dígitos que empiezan con 9 (ej. 931246675).";
+    if (!D().normPhone(c.phone)) return "Revisa tu celular: 9 dígitos que empiezan con 9.";
     return "";
   }
   async function place() {

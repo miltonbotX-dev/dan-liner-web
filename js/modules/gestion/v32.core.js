@@ -25,7 +25,7 @@
   async function call(key, params) {
     const name = FN[key] || key;
     try { return await V().rpc(name, params || {}); }
-    catch (e) { if (V().missing(e)) { const err = new Error("Esta función llega con la actualización de la base (v17)."); err.missing = true; throw err; } throw e; }
+    catch (e) { if (V().missing(e)) { const err = new Error("Esta función aún no está disponible."); err.missing = true; throw err; } throw e; }
   }
   window.DL_V17 = { FN, ready, on, call, state: st, reset: () => { st.on = null; st.probe = null; } };
 })();

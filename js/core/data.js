@@ -8,7 +8,7 @@
   const PAY_TO_DB = { CASH: "EFECTIVO", CARD: "TARJETA", YAPE: "YAPE", PLIN: "PLIN", TRANSFER: "TRANSFERENCIA" };
   const PAY_FROM_DB = { EFECTIVO: "CASH", TARJETA: "CARD", YAPE: "YAPE", PLIN: "PLIN", TRANSFERENCIA: "TRANSFER" };
   const SALE_STATUS = { COMPLETADA: "COMPLETED", ANULADA: "VOID", SEPARADO: "SEPARADO" };
-  const ROLE_ORDER = ["ADMIN", "SUPERVISOR", "CAJERO", "VENDEDOR", "ALMACENERO", "CONTADOR", "CLIENTE"];
+  const ROLE_ORDER = ["ADMIN", "DUENO", "SUPERVISOR", "ENCARGADO", "CAJERO", "VENDEDOR", "ALMACENERO", "SASTRE", "REPARTIDOR", "MARKETING", "CONTADOR", "CLIENTE"]; // v34: roles BD v19
   const RPC_ONLY = new Set(["sales", "sale_items", "payments", "invoices", "stock_levels", "stock_movements", "cash_sessions", "transfers", "layaways",
     "consignments", "production_receipts", "expenses"]);
   const BUCKET_PROOFS = "payment-proofs";
@@ -546,7 +546,7 @@
       want = want.filter((r) => r && r !== "PENDIENTE" && ROLE_ORDER.includes(r));
       for (const r of want) if (!cur.roles.includes(r)) await S.rpc("assign_role", { p_user_id: id, p_role_code: r });
       const roleIds = Object.fromEntries(((await get("roles?select=id,code")) || []).map((r) => [r.code, r.id]));
-      for (const r of cur.roles) if (!want.includes(r)) await S.rest("user_roles?user_id=eq." + id + "&role_id=eq." + roleIds[r], { method: "DELETE", prefer: "return=minimal" });
+      for (const r of cur.roles) if (!want.includes(r) && r !== "DUENO") await S.rest("user_roles?user_id=eq." + id + "&role_id=eq." + roleIds[r], { method: "DELETE", prefer: "return=minimal" });
     }
     if (patch.store_id !== undefined) {
       const target = sid(patch.store_id);
